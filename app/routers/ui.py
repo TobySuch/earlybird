@@ -6,6 +6,7 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
 from app.database import get_db
+from app.models import Run
 
 router = APIRouter()
 templates = Jinja2Templates(directory="templates")
@@ -13,8 +14,8 @@ templates = Jinja2Templates(directory="templates")
 
 @router.get("/", response_class=HTMLResponse)
 async def dashboard(request: Request, db: Session = Depends(get_db)):
-    # TODO: query latest episode and last run, pass to template
-    return templates.TemplateResponse(request, "dashboard.html")
+    last_run = db.query(Run).order_by(Run.started_at.desc()).first()
+    return templates.TemplateResponse(request, "dashboard.html", {"last_run": last_run})
 
 
 @router.get("/episodes", response_class=HTMLResponse)
@@ -43,5 +44,15 @@ async def settings(request: Request, db: Session = Depends(get_db)):
 
 @router.get("/run-log", response_class=HTMLResponse)
 async def run_log(request: Request, db: Session = Depends(get_db)):
-    # TODO: paginate runs
-    return templates.TemplateResponse(request, "run_log.html")
+    runs = db.query(Run).order_by(Run.started_at.desc()).limit(50).all()
+    return templates.TemplateResponse(request, "run_log.html", {"runs": runs})
+
+
+@router.get("/run-log/{run_id}", response_class=HTMLResponse)
+async def run_detail(run_id: int, request: Request, db: Session = Depends(get_db)):
+    run = db.get(Run, run_id)
+    if run is None:
+        from fastapi import HTTPException
+
+        raise HTTPException(status_code=404, detail="Run not found")
+    return templates.TemplateResponse(request, "run_detail.html", {"run": run})

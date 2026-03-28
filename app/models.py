@@ -15,6 +15,7 @@ class Run(Base):
     status: Mapped[str] = mapped_column(String(20), default="running")  # running | success | error
     stories_found: Mapped[int] = mapped_column(Integer, default=0)
     stories_included: Mapped[int] = mapped_column(Integer, default=0)
+    log: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     stories: Mapped[list["Story"]] = relationship("Story", back_populates="run")
     episode: Mapped["Episode | None"] = relationship("Episode", back_populates="run", uselist=False)

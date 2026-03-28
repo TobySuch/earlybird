@@ -3,14 +3,17 @@
 import base64
 import email
 import html
+import logging
 import re
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from sqlalchemy.orm import Session
 
 from app.app_config import get_app_config
 from app.gmail_auth import build_gmail_service
 from app.models import Run, Story
+
+logger = logging.getLogger(__name__)
 
 
 def run(db: Session, current_run: Run) -> None:
@@ -29,13 +32,15 @@ def run(db: Session, current_run: Run) -> None:
     cfg = get_app_config()["gmail"]
     label_name: str = cfg["label"]
     processed_label_name: str = cfg["processed_label"]
+    lookback_days: int = int(cfg.get("lookback_days", 7))
 
-    since = _last_successful_run_started_at(db, current_run.id)
-    query = f"label:{label_name}"
-    if since:
-        query += f" after:{since.strftime('%Y/%m/%d')}"
+    since = datetime.now(timezone.utc) - timedelta(days=lookback_days)
+    query = f"label:{label_name} -label:{processed_label_name} after:{since.strftime('%Y/%m/%d')}"
+
+    logger.info("Gmail query: %s", query)
 
     message_ids = _list_messages(service, query)
+    logger.info("Found %d message(s) matching query", len(message_ids))
 
     processed_label_id = _get_or_create_label(service, processed_label_name)
     count = 0
@@ -45,24 +50,15 @@ def run(db: Session, current_run: Run) -> None:
         story = _parse_to_story(raw, current_run.id)
         _upsert_story(db, story, current_run.id)
         _apply_label(service, msg_id, processed_label_id)
+        logger.info("Stored story: %s", story.title)
         count += 1
 
+    logger.info("Ingestion complete — %d story/stories stored", count)
     current_run.stories_found = count
     db.commit()
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
-
-
-def _last_successful_run_started_at(db: Session, current_run_id: int) -> datetime | None:
-    """Return the started_at of the last successful run, or None if there isn't one."""
-    result = (
-        db.query(Run)
-        .filter(Run.status == "success", Run.id != current_run_id)
-        .order_by(Run.started_at.desc())
-        .first()
-    )
-    return result.started_at if result else None
 
 
 def _list_messages(service, query: str) -> list[str]:
