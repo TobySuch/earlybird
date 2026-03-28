@@ -1,7 +1,7 @@
 """Tests for app/pipeline/ingest.py — mocked Gmail API, no live calls."""
 
 import base64
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -19,6 +19,10 @@ from app.pipeline.ingest import (
     _parse_to_story,
     _strip_html,
 )
+
+_BASE_CFG = {
+    "gmail": {"label": "Newsletters", "processed_label": "earlybird-processed", "lookback_days": 7}
+}
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────
 
@@ -168,6 +172,34 @@ def test_parse_to_story_extracts_fields():
     assert "Visit" in story.raw_content
 
 
+# ── Query construction ────────────────────────────────────────────────────────
+
+
+@patch("app.pipeline.ingest.build_gmail_service")
+@patch("app.pipeline.ingest.get_app_config")
+def test_run_query_excludes_processed_and_respects_lookback(mock_cfg, mock_build, db, current_run):
+    mock_cfg.return_value = _BASE_CFG
+
+    service = MagicMock()
+    service.users().messages().list().execute.return_value = {"messages": []}
+    service.users().labels().list().execute.return_value = {
+        "labels": [{"id": "lbl1", "name": "earlybird-processed"}]
+    }
+    mock_build.return_value = service
+
+    ingest.run(db, current_run)
+
+    call_kwargs = service.users().messages().list.call_args[1]
+    query: str = call_kwargs["q"]
+
+    assert "label:Newsletters" in query
+    assert "-label:earlybird-processed" in query
+
+    # after: date should be within the last 7 days
+    expected_after = (datetime.now(timezone.utc) - timedelta(days=7)).strftime("%Y/%m/%d")
+    assert f"after:{expected_after}" in query
+
+
 # ── Integration-style tests for ingest.run ───────────────────────────────────
 
 
@@ -199,9 +231,7 @@ def _build_mock_service(messages, label_id="label_processed"):
 @patch("app.pipeline.ingest.build_gmail_service")
 @patch("app.pipeline.ingest.get_app_config")
 def test_run_stores_stories(mock_cfg, mock_build, db, current_run):
-    mock_cfg.return_value = {
-        "gmail": {"label": "Newsletters", "processed_label": "earlybird-processed"}
-    }
+    mock_cfg.return_value = _BASE_CFG
 
     messages = [
         _make_message(subject="Newsletter A", body_text="https://a.example.com"),
@@ -236,9 +266,7 @@ def test_run_stores_stories(mock_cfg, mock_build, db, current_run):
 @patch("app.pipeline.ingest.build_gmail_service")
 @patch("app.pipeline.ingest.get_app_config")
 def test_run_deduplicates_by_url(mock_cfg, mock_build, db, current_run):
-    mock_cfg.return_value = {
-        "gmail": {"label": "Newsletters", "processed_label": "earlybird-processed"}
-    }
+    mock_cfg.return_value = _BASE_CFG
 
     shared_url = "https://shared.example.com"
     messages = [
@@ -273,9 +301,7 @@ def test_run_deduplicates_by_url(mock_cfg, mock_build, db, current_run):
 @patch("app.pipeline.ingest.build_gmail_service")
 @patch("app.pipeline.ingest.get_app_config")
 def test_run_creates_processed_label_if_absent(mock_cfg, mock_build, db, current_run):
-    mock_cfg.return_value = {
-        "gmail": {"label": "Newsletters", "processed_label": "earlybird-processed"}
-    }
+    mock_cfg.return_value = _BASE_CFG
 
     service = MagicMock()
     service.users().messages().list().execute.return_value = {"messages": []}
@@ -294,9 +320,7 @@ def test_run_creates_processed_label_if_absent(mock_cfg, mock_build, db, current
 @patch("app.pipeline.ingest.build_gmail_service")
 @patch("app.pipeline.ingest.get_app_config")
 def test_run_no_messages_sets_stories_found_zero(mock_cfg, mock_build, db, current_run):
-    mock_cfg.return_value = {
-        "gmail": {"label": "Newsletters", "processed_label": "earlybird-processed"}
-    }
+    mock_cfg.return_value = _BASE_CFG
 
     service = MagicMock()
     service.users().messages().list().execute.return_value = {"messages": []}

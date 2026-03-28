@@ -20,6 +20,8 @@ DEFAULTS: dict = {
         # This label is applied to messages after they are fetched so they are
         # skipped on future runs.
         "processed_label": "earlybird-processed",
+        # How many days back to look for new messages on each run.
+        "lookback_days": 7,
     },
     "schedule": {
         # APScheduler cron expression for the daily pipeline run.
