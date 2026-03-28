@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — Earlybird{% endblock %}
+{% block content %}
+<h1 class="text-2xl font-bold mb-6">Dashboard</h1>
+<!-- TODO: latest episode summary, last run status, next scheduled run -->
+<p class="text-gray-500">No episodes yet. Trigger a run to get started.</p>
+<button
+  hx-post="/api/run/trigger"
+  hx-swap="none"
+  class="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+  Run now
+</button>
+{% endblock %}
