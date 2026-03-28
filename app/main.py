@@ -28,10 +28,10 @@ async def lifespan(app: FastAPI):
         from app.models import User
 
         if db.query(User).count() == 0:
-            code = auth_utils.generate_signup_code()
+            code = auth_utils.generate_pairing_code()
             logger.warning("=" * 60)
             logger.warning("FIRST RUN — no users exist.")
-            logger.warning("Signup code: %s", code)
+            logger.warning("Pairing code: %s", code)
             logger.warning("Visit /auth/signup to create your account.")
             logger.warning("=" * 60)
     finally:
