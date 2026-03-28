@@ -9,6 +9,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
+from app.auth import require_user_api
 from app.database import Base, get_db
 from app.main import app
 from app.models import Run
@@ -35,6 +36,7 @@ def client(db_session):
         yield db_session
 
     app.dependency_overrides[get_db] = _override
+    app.dependency_overrides[require_user_api] = lambda: None  # bypass auth
     # Suppress scheduler start/stop so tests don't spin up APScheduler
     with patch("app.main.start_scheduler"), patch("app.main.stop_scheduler"):
         with TestClient(app) as c:

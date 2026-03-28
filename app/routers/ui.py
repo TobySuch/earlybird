@@ -5,10 +5,11 @@ from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
+from app.auth import require_user
 from app.database import get_db
 from app.models import Run
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(require_user)])
 templates = Jinja2Templates(directory="templates")
 
 

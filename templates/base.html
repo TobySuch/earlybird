@@ -9,12 +9,17 @@
   <script src="/static/js/alpine.min.js" defer></script>
 </head>
 <body class="bg-gray-50 text-gray-900 min-h-screen">
-  <nav class="bg-white border-b border-gray-200 px-6 py-3 flex gap-6 text-sm font-medium">
+  {% block nav %}
+  <nav class="bg-white border-b border-gray-200 px-6 py-3 flex gap-6 text-sm font-medium items-center">
     <a href="/" class="hover:text-blue-600">Dashboard</a>
     <a href="/episodes" class="hover:text-blue-600">Episodes</a>
     <a href="/run-log" class="hover:text-blue-600">Run Log</a>
     <a href="/settings" class="hover:text-blue-600">Settings</a>
+    <form method="post" action="/auth/logout" class="ml-auto">
+      <button type="submit" class="hover:text-blue-600">Logout</button>
+    </form>
   </nav>
+  {% endblock %}
   <main class="max-w-5xl mx-auto px-6 py-8">
     {% block content %}{% endblock %}
   </main>
