@@ -22,7 +22,7 @@ from app.models import User
 def reset_signup_code():
     """Ensure the module-level signup code is reset between tests."""
     yield
-    auth_utils._signup_code = None
+    auth_utils._pairing_code = None
 
 
 @pytest.fixture
@@ -102,15 +102,15 @@ def test_hash_password_different_hashes_for_same_input():
 
 
 def test_generate_signup_code_sets_module_var():
-    code = auth_utils.generate_signup_code()
-    assert auth_utils.get_signup_code() == code
+    code = auth_utils.generate_pairing_code()
+    assert auth_utils.get_pairing_code() == code
     assert len(code) > 0
 
 
 def test_consume_signup_code_clears_module_var():
-    auth_utils.generate_signup_code()
-    auth_utils.consume_signup_code()
-    assert auth_utils.get_signup_code() is None
+    auth_utils.generate_pairing_code()
+    auth_utils.consume_pairing_code()
+    assert auth_utils.get_pairing_code() is None
 
 
 # ---------------------------------------------------------------------------
@@ -136,7 +136,7 @@ def test_signup_page_redirects_to_login_when_user_exists(client, existing_user):
 
 
 def test_signup_creates_user_and_sets_session(client, db_session):
-    code = auth_utils.generate_signup_code()
+    code = auth_utils.generate_pairing_code()
     resp = client.post(
         "/auth/signup",
         data={
@@ -155,7 +155,7 @@ def test_signup_creates_user_and_sets_session(client, db_session):
 
 
 def test_signup_code_consumed_after_success(client):
-    code = auth_utils.generate_signup_code()
+    code = auth_utils.generate_pairing_code()
     client.post(
         "/auth/signup",
         data={
@@ -165,11 +165,11 @@ def test_signup_code_consumed_after_success(client):
             "signup_code": code,
         },
     )
-    assert auth_utils.get_signup_code() is None
+    assert auth_utils.get_pairing_code() is None
 
 
 def test_signup_rejects_wrong_code(client):
-    auth_utils.generate_signup_code()
+    auth_utils.generate_pairing_code()
     resp = client.post(
         "/auth/signup",
         data={
@@ -184,7 +184,7 @@ def test_signup_rejects_wrong_code(client):
 
 
 def test_signup_rejects_mismatched_passwords(client):
-    code = auth_utils.generate_signup_code()
+    code = auth_utils.generate_pairing_code()
     resp = client.post(
         "/auth/signup",
         data={
@@ -199,7 +199,7 @@ def test_signup_rejects_mismatched_passwords(client):
 
 
 def test_signup_rejects_short_password(client):
-    code = auth_utils.generate_signup_code()
+    code = auth_utils.generate_pairing_code()
     resp = client.post(
         "/auth/signup",
         data={

@@ -92,7 +92,7 @@ async def signup_submit(
             request, "auth/signup.html", {"error": msg}, status_code=400
         )
 
-    if signup_code != auth_utils.get_signup_code():
+    if not auth_utils.verify_pairing_code(signup_code):
         return render_error("Invalid setup code.")
     if password != confirm_password:
         return render_error("Passwords do not match.")
@@ -104,7 +104,7 @@ async def signup_submit(
     db.commit()
     db.refresh(user)
 
-    auth_utils.consume_signup_code()
+    auth_utils.consume_pairing_code()
     request.session["user_id"] = user.id
     return RedirectResponse(url="/", status_code=302)
 
