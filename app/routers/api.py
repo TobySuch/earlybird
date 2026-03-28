@@ -5,13 +5,14 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, BackgroundTasks, Depends
 from sqlalchemy.orm import Session
 
+from app.auth import require_user_api
 from app.database import get_db
 from app.models import Run
 
 router = APIRouter(tags=["api"])
 
 
-@router.post("/run/trigger")
+@router.post("/run/trigger", dependencies=[Depends(require_user_api)])
 async def trigger_run(background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     """Manually trigger the pipeline. Creates a Run record and queues execution."""
     from app.scheduler import execute_pipeline
@@ -25,7 +26,7 @@ async def trigger_run(background_tasks: BackgroundTasks, db: Session = Depends(g
     return {"status": "queued", "run_id": run.id}
 
 
-@router.get("/run/status")
+@router.get("/run/status", dependencies=[Depends(require_user_api)])
 async def run_status(db: Session = Depends(get_db)):
     """Return the status of the most recent run."""
     run = db.query(Run).order_by(Run.started_at.desc()).first()

@@ -1,15 +1,120 @@
-"""OAuth2 authentication routes for Gmail.
+"""Authentication routes.
 
+User auth:
+GET  /auth/login    — login form
+POST /auth/login    — validate credentials and set session
+GET  /auth/signup   — signup form (only when no users exist)
+POST /auth/signup   — create first user (requires signup code)
+POST /auth/logout   — clear session
+
+Gmail OAuth2:
 GET /auth/gmail          — initiates the OAuth2 flow (redirects to Google)
 GET /auth/gmail/callback — handles the redirect back from Google, saves token
 """
 
-from fastapi import APIRouter, Request
-from fastapi.responses import RedirectResponse
+from fastapi import APIRouter, Depends, Form, Request
+from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.templating import Jinja2Templates
+from sqlalchemy.orm import Session
 
+from app import auth as auth_utils
+from app.database import get_db
 from app.gmail_auth import exchange_code, get_auth_url
+from app.models import User
 
 router = APIRouter(tags=["auth"])
+
+templates = Jinja2Templates(directory="templates")
+
+
+# ---------------------------------------------------------------------------
+# User auth routes
+# ---------------------------------------------------------------------------
+
+
+@router.get("/login", name="login", response_class=HTMLResponse)
+async def login_page(request: Request, db: Session = Depends(get_db)):
+    """Show login form. Redirect to signup if no users exist."""
+    if db.query(User).count() == 0:
+        return RedirectResponse(url="/auth/signup", status_code=302)
+    if request.session.get("user_id"):
+        return RedirectResponse(url="/", status_code=302)
+    return templates.TemplateResponse(request, "auth/login.html", {})
+
+
+@router.post("/login", name="login_submit")
+async def login_submit(
+    request: Request,
+    username: str = Form(...),
+    password: str = Form(...),
+    db: Session = Depends(get_db),
+):
+    """Validate credentials and set session."""
+    if db.query(User).count() == 0:
+        return RedirectResponse(url="/auth/signup", status_code=302)
+
+    user = db.query(User).filter(User.username == username).first()
+    if user and auth_utils.verify_password(password, user.password_hash):
+        request.session["user_id"] = user.id
+        return RedirectResponse(url="/", status_code=302)
+
+    return templates.TemplateResponse(
+        request,
+        "auth/login.html",
+        {"error": "Invalid username or password"},
+        status_code=400,
+    )
+
+
+@router.get("/signup", name="signup", response_class=HTMLResponse)
+async def signup_page(request: Request, db: Session = Depends(get_db)):
+    """Show signup form. Only accessible when no users exist."""
+    if db.query(User).count() > 0:
+        return RedirectResponse(url="/auth/login", status_code=302)
+    return templates.TemplateResponse(request, "auth/signup.html", {})
+
+
+@router.post("/signup", name="signup_submit")
+async def signup_submit(
+    request: Request,
+    username: str = Form(...),
+    password: str = Form(...),
+    confirm_password: str = Form(...),
+    signup_code: str = Form(...),
+    db: Session = Depends(get_db),
+):
+    """Create the first user account."""
+    if db.query(User).count() > 0:
+        return RedirectResponse(url="/auth/login", status_code=302)
+
+    def render_error(msg: str):
+        return templates.TemplateResponse(
+            request, "auth/signup.html", {"error": msg}, status_code=400
+        )
+
+    if signup_code != auth_utils.get_signup_code():
+        return render_error("Invalid setup code.")
+    if password != confirm_password:
+        return render_error("Passwords do not match.")
+    if len(password) < 8:
+        return render_error("Password must be at least 8 characters.")
+
+    user = User(username=username, password_hash=auth_utils.hash_password(password))
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+
+    auth_utils.consume_signup_code()
+    request.session["user_id"] = user.id
+    return RedirectResponse(url="/", status_code=302)
+
+
+@router.post("/logout", name="logout")
+async def logout(request: Request):
+    """Clear session and redirect to login."""
+    request.session.clear()
+    return RedirectResponse(url="/auth/login", status_code=302)
+
 
 _STATE_SESSION_KEY = "gmail_oauth_state"
 _VERIFIER_SESSION_KEY = "gmail_oauth_verifier"
