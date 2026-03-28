@@ -31,8 +31,14 @@ async def sources(request: Request, db: Session = Depends(get_db)):
 
 @router.get("/settings", response_class=HTMLResponse)
 async def settings(request: Request, db: Session = Depends(get_db)):
+    from app.gmail_auth import get_credentials
+
+    creds = get_credentials()
+    gmail_connected = creds is not None and creds.valid
     # TODO: load config from DB
-    return templates.TemplateResponse(request, "settings.html")
+    return templates.TemplateResponse(
+        request, "settings.html", {"gmail_connected": gmail_connected}
+    )
 
 
 @router.get("/run-log", response_class=HTMLResponse)
