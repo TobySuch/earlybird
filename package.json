@@ -1,0 +1,21 @@
+{
+  "name": "earlybird-frontend",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Frontend asset pipeline for Earlybird",
+  "scripts": {
+    "build": "bun run copy-vendor && bun run build-css",
+    "copy-vendor": "mkdir -p static/js && cp node_modules/htmx.org/dist/htmx.min.js static/js/ && cp node_modules/alpinejs/dist/cdn.min.js static/js/alpine.min.js",
+    "build-css": "bunx tailwindcss -i static/src/main.css -o static/css/main.css --minify",
+    "dev-css": "bunx tailwindcss -i static/src/main.css -o static/css/main.css --watch"
+  },
+  "dependencies": {
+    "alpinejs": "^3.14.0",
+    "baseline-browser-mapping": "^2.10.12",
+    "caniuse-lite": "^1.0.30001781",
+    "htmx.org": "^2.0.0"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.4.0"
+  }
+}
