@@ -25,11 +25,19 @@ def get_settings() -> Settings:
 
 def get_db_config(db, key: str, default: str = "") -> str:
     """Read a value from the config key/value table. Falls back to default."""
-    # TODO: implement DB config lookup
-    return default
+    from app.models import Config  # local import avoids circular deps at module load
+
+    row = db.query(Config).filter(Config.key == key).first()
+    return row.value if row else default
 
 
 def set_db_config(db, key: str, value: str) -> None:
-    """Write a value to the config key/value table."""
-    # TODO: implement DB config upsert
-    pass
+    """Write a value to the config key/value table (upsert)."""
+    from app.models import Config  # local import avoids circular deps at module load
+
+    row = db.query(Config).filter(Config.key == key).first()
+    if row:
+        row.value = value
+    else:
+        db.add(Config(key=key, value=value))
+    db.commit()

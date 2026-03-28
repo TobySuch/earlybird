@@ -1,1 +1,103 @@
 # earlybird
+
+Personal newsletter aggregator and podcast generator. Fetches newsletters from Gmail, summarises stories with Claude Haiku, produces a daily digest, and optionally generates a TTS podcast episode.
+
+## Setup
+
+### 1. Google Cloud / Gmail API
+
+You need a Google Cloud project with the Gmail API enabled and an OAuth2 client to let Earlybird read your inbox.
+
+**Create the project and enable Gmail:**
+
+1. Go to [Google Cloud Console](https://console.cloud.google.com/) and create a new project (e.g. `earlybird`).
+2. In the left menu go to **APIs & Services → Library**, search for **Gmail API**, and click **Enable**.
+
+**Configure the OAuth consent screen:**
+
+1. Go to **APIs & Services → OAuth consent screen**.
+2. Choose **External** (even for personal use — Internal requires a Workspace account).
+3. Fill in the required fields:
+   - App name: `Earlybird`
+   - User support email: your Gmail address
+   - Developer contact email: your Gmail address
+4. Click through **Scopes** (no extra scopes needed here — they're requested at runtime) and **Test users**.
+5. On the **Test users** step, add your own Gmail address. While the app is in "Testing" mode only listed test users can authorise it.
+6. Save and continue through to the summary.
+
+**Create OAuth2 credentials:**
+
+1. Go to **APIs & Services → Credentials** and click **+ Create Credentials → OAuth client ID**.
+2. Choose **Web application** as the application type.
+3. Give it a name (e.g. `Earlybird web`).
+4. Under **Authorised redirect URIs** add the callback URL for your deployment:
+   - Local dev: `http://localhost:8000/auth/gmail/callback`
+   - Production (behind Traefik): `https://earlybird.yourdomain.com/auth/gmail/callback`
+5. Click **Create**. Copy the **Client ID** and **Client secret** — you'll need them next.
+
+### 2. Environment variables
+
+Copy `.env.example` to `.env` and fill in the values:
+
+```bash
+cp .env.example .env
+```
+
+Key variables:
+
+| Variable | Description |
+|---|---|
+| `SECRET_KEY` | Random secret for session signing. Generate with `openssl rand -hex 32`. |
+| `GMAIL_CLIENT_ID` | OAuth2 Client ID from step above. |
+| `GMAIL_CLIENT_SECRET` | OAuth2 Client Secret from step above. |
+| `ANTHROPIC_API_KEY` | Claude API key for summarisation. |
+| `OPENAI_API_KEY` | OpenAI API key for TTS (optional). |
+| `ABS_URL` | Base URL of your Audiobookshelf instance (optional). |
+| `ABS_API_KEY` | ABS API token (optional). |
+
+### 3. Gmail label
+
+Earlybird filters by a Gmail label rather than scanning your whole inbox. Create the label in Gmail first:
+
+1. In Gmail, click **+ Create new label** (left sidebar) and name it (e.g. `Newsletters`).
+2. Set up a filter (**Settings → Filters and Blocked Addresses → Create a new filter**) to automatically apply that label to incoming newsletters.
+
+Then tell Earlybird which label to use by editing `data/config.yml` (created automatically on first startup):
+
+```yaml
+gmail:
+  label: Newsletters          # the label to ingest from
+  processed_label: earlybird-processed  # applied after fetching so messages are skipped next run
+```
+
+### 4. Install and run
+
+```bash
+make install   # install Python deps + frontend deps + pre-commit hook
+make db-init   # create SQLite tables
+make dev       # run with hot reload
+```
+
+### 5. Authorise Gmail
+
+On first run, visit `http://localhost:8000/auth/gmail` in your browser. You'll be redirected to Google's OAuth consent screen — sign in with the Gmail account you added as a test user. After approving, you'll be redirected back and the token is saved to `data/token.json`.
+
+You only need to do this once. The token is refreshed automatically.
+
+## Docker
+
+```bash
+cp .env.example .env   # fill in your values
+make docker-up
+```
+
+On first run, visit `https://earlybird.yourdomain.com/auth/gmail` to complete the OAuth flow. The token and database are persisted in `./data/`.
+
+## Development
+
+```bash
+make test    # run pytest
+make lint    # auto-fix with ruff
+```
+
+Tests use an in-memory SQLite database and mock the Gmail API — no live credentials needed.

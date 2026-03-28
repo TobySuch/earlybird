@@ -3,10 +3,8 @@ services:
     build: .
     restart: unless-stopped
     volumes:
-      # SQLite database — persisted outside the container
+      # SQLite database, Gmail OAuth token, and config — persisted outside the container
       - ./data:/app/data
-      # Gmail OAuth token written by the auth flow
-      - ./data/token.json:/app/token.json
     environment:
       - DATABASE_URL=sqlite:////app/data/earlybird.db
     env_file:
