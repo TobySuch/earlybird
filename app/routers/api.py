@@ -35,7 +35,7 @@ async def run_status(db: Session = Depends(get_db)):
         "status": run.status,
         "run_id": run.id,
         "started_at": run.started_at.isoformat(),
-        "stories_found": run.stories_found,
+        "newsletters_found": run.newsletters_found,
     }
 
 

@@ -15,7 +15,7 @@
       <span class="inline-block px-2 py-0.5 text-xs font-medium bg-red-100 text-red-700 rounded">{{ last_run.status }}</span>
     {% endif %}
     <span class="text-sm text-gray-700">{{ last_run.started_at.strftime("%d %b %Y %H:%M") }}</span>
-    <span class="text-sm text-gray-500">· {{ last_run.stories_found }} stories found</span>
+    <span class="text-sm text-gray-500">· {{ last_run.newsletters_found }} newsletters found</span>
     <a href="/run-log/{{ last_run.id }}" class="ml-auto text-sm text-blue-600 hover:underline">View logs</a>
   </div>
 </div>

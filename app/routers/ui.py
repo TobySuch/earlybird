@@ -24,12 +24,6 @@ async def episodes(request: Request, db: Session = Depends(get_db)):
     return templates.TemplateResponse(request, "episodes.html")
 
 
-@router.get("/sources", response_class=HTMLResponse)
-async def sources(request: Request, db: Session = Depends(get_db)):
-    # TODO: list and manage sources
-    return templates.TemplateResponse(request, "sources.html")
-
-
 @router.get("/settings", response_class=HTMLResponse)
 async def settings(request: Request, db: Session = Depends(get_db)):
     from app.gmail_auth import get_credentials

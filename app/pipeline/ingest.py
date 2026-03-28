@@ -1,4 +1,4 @@
-"""Gmail ingestion: fetch newsletters since last run, label as processed, store stories."""
+"""Gmail ingestion: fetch newsletters since last run, label as processed, store newsletters."""
 
 import base64
 import email
@@ -11,22 +11,22 @@ from sqlalchemy.orm import Session
 
 from app.app_config import get_app_config
 from app.gmail_auth import build_gmail_service
-from app.models import Run, Story
+from app.models import Newsletter, Run
 
 logger = logging.getLogger(__name__)
 
 
 def run(db: Session, current_run: Run) -> None:
-    """Fetch emails from Gmail and persist stories to the DB.
+    """Fetch emails from Gmail and persist newsletters to the DB.
 
     Steps:
     1. Build the Gmail query using the configured label + date window since the
        last successful run.
     2. Fetch all matching message IDs (paginated).
-    3. For each message: parse sender, subject, body; store as a Story row.
+    3. For each message: parse sender, subject, body; store as a Newsletter row.
     4. Deduplicate within the current run by URL (increment seen_count).
     5. Apply the 'processed' label so the message is skipped next run.
-    6. Update current_run.stories_found.
+    6. Update current_run.newsletters_found.
     """
     service = build_gmail_service()
     cfg = get_app_config()["gmail"]
@@ -47,14 +47,14 @@ def run(db: Session, current_run: Run) -> None:
 
     for msg_id in message_ids:
         raw = _fetch_message(service, msg_id)
-        story = _parse_to_story(raw, current_run.id)
-        _upsert_story(db, story, current_run.id)
+        newsletter = _parse_to_newsletter(raw, current_run.id)
+        _upsert_newsletter(db, newsletter, current_run.id)
         _apply_label(service, msg_id, processed_label_id)
-        logger.info("Stored story: %s", story.title)
+        logger.info("Stored newsletter: %s", newsletter.title)
         count += 1
 
-    logger.info("Ingestion complete — %d story/stories stored", count)
-    current_run.stories_found = count
+    logger.info("Ingestion complete — %d newsletter(s) stored", count)
+    current_run.newsletters_found = count
     db.commit()
 
 
@@ -86,8 +86,8 @@ def _fetch_message(service, msg_id: str) -> dict:
     return service.users().messages().get(userId="me", id=msg_id, format="full").execute()
 
 
-def _parse_to_story(raw: dict, run_id: int) -> Story:
-    """Extract a Story from a raw Gmail API message payload."""
+def _parse_to_newsletter(raw: dict, run_id: int) -> Newsletter:
+    """Extract a Newsletter from a raw Gmail API message payload."""
     headers = {h["name"].lower(): h["value"] for h in raw.get("payload", {}).get("headers", [])}
 
     subject = headers.get("subject", "(no subject)")
@@ -95,7 +95,7 @@ def _parse_to_story(raw: dict, run_id: int) -> Story:
     url = _extract_first_url(body)
     published_at = _parse_date_header(headers.get("date"))
 
-    return Story(
+    return Newsletter(
         run_id=run_id,
         title=subject,
         url=url,
@@ -170,14 +170,18 @@ def _parse_date_header(date_str: str | None) -> datetime | None:
         return None
 
 
-def _upsert_story(db: Session, story: Story, run_id: int) -> None:
-    """Insert *story*, or increment seen_count if the same URL already exists this run."""
-    if story.url:
-        existing = db.query(Story).filter(Story.run_id == run_id, Story.url == story.url).first()
+def _upsert_newsletter(db: Session, newsletter: Newsletter, run_id: int) -> None:
+    """Insert *newsletter*, or increment seen_count if the same URL already exists this run."""
+    if newsletter.url:
+        existing = (
+            db.query(Newsletter)
+            .filter(Newsletter.run_id == run_id, Newsletter.url == newsletter.url)
+            .first()
+        )
         if existing:
             existing.seen_count += 1
             return
-    db.add(story)
+    db.add(newsletter)
 
 
 def _get_or_create_label(service, label_name: str) -> str:

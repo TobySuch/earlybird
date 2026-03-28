@@ -9,14 +9,14 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from app.database import Base
-from app.models import Run, Story
+from app.models import Newsletter, Run
 from app.pipeline import ingest
 from app.pipeline.ingest import (
     _decode_b64,
     _extract_body,
     _extract_first_url,
     _parse_date_header,
-    _parse_to_story,
+    _parse_to_newsletter,
     _strip_html,
 )
 
@@ -160,16 +160,16 @@ def test_extract_body_multipart_prefers_plain():
     assert _extract_body(payload) == "Plain part"
 
 
-def test_parse_to_story_extracts_fields():
+def test_parse_to_newsletter_extracts_fields():
     raw = _make_message(
         subject="My Newsletter", body_text="Visit https://news.example.com for details"
     )
-    story = _parse_to_story(raw, run_id=1)
+    newsletter = _parse_to_newsletter(raw, run_id=1)
 
-    assert story.title == "My Newsletter"
-    assert story.url == "https://news.example.com"
-    assert story.run_id == 1
-    assert "Visit" in story.raw_content
+    assert newsletter.title == "My Newsletter"
+    assert newsletter.url == "https://news.example.com"
+    assert newsletter.run_id == 1
+    assert "Visit" in newsletter.raw_content
 
 
 # ── Query construction ────────────────────────────────────────────────────────
@@ -230,7 +230,7 @@ def _build_mock_service(messages, label_id="label_processed"):
 
 @patch("app.pipeline.ingest.build_gmail_service")
 @patch("app.pipeline.ingest.get_app_config")
-def test_run_stores_stories(mock_cfg, mock_build, db, current_run):
+def test_run_stores_newsletters(mock_cfg, mock_build, db, current_run):
     mock_cfg.return_value = _BASE_CFG
 
     messages = [
@@ -258,9 +258,9 @@ def test_run_stores_stories(mock_cfg, mock_build, db, current_run):
 
     ingest.run(db, current_run)
 
-    stories = db.query(Story).filter(Story.run_id == current_run.id).all()
-    assert len(stories) == 2
-    assert current_run.stories_found == 2
+    newsletters = db.query(Newsletter).filter(Newsletter.run_id == current_run.id).all()
+    assert len(newsletters) == 2
+    assert current_run.newsletters_found == 2
 
 
 @patch("app.pipeline.ingest.build_gmail_service")
@@ -293,9 +293,9 @@ def test_run_deduplicates_by_url(mock_cfg, mock_build, db, current_run):
 
     ingest.run(db, current_run)
 
-    stories = db.query(Story).filter(Story.run_id == current_run.id).all()
-    assert len(stories) == 1
-    assert stories[0].seen_count == 2
+    newsletters = db.query(Newsletter).filter(Newsletter.run_id == current_run.id).all()
+    assert len(newsletters) == 1
+    assert newsletters[0].seen_count == 2
 
 
 @patch("app.pipeline.ingest.build_gmail_service")
@@ -319,7 +319,7 @@ def test_run_creates_processed_label_if_absent(mock_cfg, mock_build, db, current
 
 @patch("app.pipeline.ingest.build_gmail_service")
 @patch("app.pipeline.ingest.get_app_config")
-def test_run_no_messages_sets_stories_found_zero(mock_cfg, mock_build, db, current_run):
+def test_run_no_messages_sets_newsletters_found_zero(mock_cfg, mock_build, db, current_run):
     mock_cfg.return_value = _BASE_CFG
 
     service = MagicMock()
@@ -331,4 +331,4 @@ def test_run_no_messages_sets_stories_found_zero(mock_cfg, mock_build, db, curre
 
     ingest.run(db, current_run)
 
-    assert current_run.stories_found == 0
+    assert current_run.newsletters_found == 0

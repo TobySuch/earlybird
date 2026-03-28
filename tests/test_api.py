@@ -77,7 +77,7 @@ def test_status_idle_when_no_runs(client):
 
 def test_status_returns_latest_run(client, db_session):
     now = datetime.now(timezone.utc).replace(tzinfo=None)
-    run = Run(started_at=now, status="success", stories_found=5)
+    run = Run(started_at=now, status="success", newsletters_found=5)
     db_session.add(run)
     db_session.commit()
 
@@ -85,7 +85,7 @@ def test_status_returns_latest_run(client, db_session):
     assert response.status_code == 200
     data = response.json()
     assert data["status"] == "success"
-    assert data["stories_found"] == 5
+    assert data["newsletters_found"] == 5
     assert data["run_id"] == run.id
 
 
