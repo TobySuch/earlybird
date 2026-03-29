@@ -17,12 +17,12 @@ class Run(Base):
     newsletters_included: Mapped[int] = mapped_column(Integer, default=0)
     log: Mapped[str | None] = mapped_column(Text, nullable=True)
 
-    newsletters: Mapped[list["Newsletter"]] = relationship("Newsletter", back_populates="run")
+    news_sources: Mapped[list["NewsSource"]] = relationship("NewsSource", back_populates="run")
     episode: Mapped["Episode | None"] = relationship("Episode", back_populates="run", uselist=False)
 
 
-class Newsletter(Base):
-    __tablename__ = "newsletters"
+class NewsSource(Base):
+    __tablename__ = "news_sources"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     run_id: Mapped[int] = mapped_column(Integer, ForeignKey("runs.id"), nullable=False)
@@ -31,8 +31,10 @@ class Newsletter(Base):
     raw_content: Mapped[str | None] = mapped_column(Text, nullable=True)
     seen_count: Mapped[int] = mapped_column(Integer, default=1)
     published_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    source_type: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    source_name: Mapped[str | None] = mapped_column(String(200), nullable=True)
 
-    run: Mapped["Run"] = relationship("Run", back_populates="newsletters")
+    run: Mapped["Run"] = relationship("Run", back_populates="news_sources")
 
 
 class Episode(Base):
