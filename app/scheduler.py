@@ -4,9 +4,11 @@ from datetime import datetime, timezone
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 
+from app.app_config import get_app_config
 from app.database import SessionLocal
 from app.models import Run
 from app.pipeline import ingest
+from app.pipeline.sources.gmail import GmailSource
 
 scheduler = BackgroundScheduler()
 
@@ -34,7 +36,9 @@ def execute_pipeline(run_id: int) -> None:
     run = None
     try:
         run = db.get(Run, run_id)
-        ingest.run(db, run)
+        cfg = get_app_config()
+        sources = [GmailSource(db=db, cfg=cfg["gmail"])]
+        ingest.run(db, run, sources)
         run.status = "success"
     except Exception as exc:
         if run is not None:
@@ -66,8 +70,6 @@ def run_pipeline() -> None:
 
 def start_scheduler() -> None:
     """Start the scheduler with the cron expression from config."""
-    from app.app_config import get_app_config
-
     cfg = get_app_config()
     cron = cfg.get("schedule", {}).get("cron", "0 7 * * 1-5")
     scheduler.add_job(run_pipeline, CronTrigger.from_crontab(cron), id="pipeline")
