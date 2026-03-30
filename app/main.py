@@ -16,10 +16,30 @@ from app.scheduler import start_scheduler, stop_scheduler
 logger = logging.getLogger(__name__)
 
 
+def _check_env() -> None:
+    """Log warnings for missing or default env var values at startup."""
+    s = get_settings()
+
+    checks = [
+        (
+            s.secret_key == "changeme",
+            "SECRET_KEY is set to the default 'changeme' — set a strong random value in .env",
+        ),
+        (not s.anthropic_api_key, "ANTHROPIC_API_KEY is not set — LLM summarisation will fail"),
+        (not s.gmail_client_id, "GMAIL_CLIENT_ID is not set — Gmail ingest will fail"),
+        (not s.gmail_client_secret, "GMAIL_CLIENT_SECRET is not set — Gmail ingest will fail"),
+    ]
+
+    for failed, message in checks:
+        if failed:
+            logger.warning("Config warning: %s", message)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     get_app_config()  # create data/config.yml from defaults if absent
     init_db()
+    _check_env()
     start_scheduler()
 
     # Generate a one-time signup code if no users exist yet

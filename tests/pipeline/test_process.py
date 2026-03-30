@@ -1,0 +1,155 @@
+"""Tests for app/pipeline/process.py."""
+
+from __future__ import annotations
+
+from datetime import datetime
+from unittest.mock import patch
+
+import pytest
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+
+from app.database import Base
+from app.models import Episode, NewsSource, Run
+from app.pipeline import process
+
+# ── Fixtures ──────────────────────────────────────────────────────────────────
+
+
+@pytest.fixture
+def db():
+    engine = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False})
+    Base.metadata.create_all(engine)
+    Session = sessionmaker(bind=engine)
+    session = Session()
+    yield session
+    session.close()
+
+
+@pytest.fixture
+def current_run(db):
+    run = Run(started_at=datetime.utcnow(), status="running")
+    db.add(run)
+    db.commit()
+    db.refresh(run)
+    return run
+
+
+# ── Stub ──────────────────────────────────────────────────────────────────────
+
+
+class StubLLMProvider:
+    """Minimal LLMProvider for process tests — no API calls."""
+
+    def __init__(self, response: str = "stub newsletter text") -> None:
+        self.response = response
+        self.calls: list[dict] = []
+
+    def complete(self, system: str, user: str) -> str:
+        self.calls.append({"system": system, "user": user})
+        return self.response
+
+
+def _make_source(
+    db,
+    run_id: int,
+    title: str = "Test Article",
+    content: str = "Article content.",
+) -> NewsSource:
+    s = NewsSource(
+        run_id=run_id,
+        title=title,
+        raw_content=content,
+        source_name="Test Source",
+        source_type="stub",
+    )
+    db.add(s)
+    db.commit()
+    return s
+
+
+# ── Tests ─────────────────────────────────────────────────────────────────────
+
+
+def test_run_creates_episode(db, current_run):
+    _make_source(db, current_run.id)
+    stub = StubLLMProvider("My newsletter digest.")
+
+    with (
+        patch("app.pipeline.process.get_llm_provider", return_value=stub),
+        patch("app.pipeline.process.get_llm_user_prompt", return_value=""),
+    ):
+        process.run(db, current_run)
+
+    episode = db.query(Episode).filter(Episode.run_id == current_run.id).first()
+    assert episode is not None
+    assert episode.newsletter_text == "My newsletter digest."
+
+
+def test_run_sets_newsletters_included(db, current_run):
+    _make_source(db, current_run.id, title="A")
+    _make_source(db, current_run.id, title="B")
+    stub = StubLLMProvider()
+
+    with (
+        patch("app.pipeline.process.get_llm_provider", return_value=stub),
+        patch("app.pipeline.process.get_llm_user_prompt", return_value=""),
+    ):
+        process.run(db, current_run)
+
+    assert current_run.newsletters_included == 2
+
+
+def test_run_no_sources_skips_llm_call(db, current_run):
+    stub = StubLLMProvider()
+
+    with (
+        patch("app.pipeline.process.get_llm_provider", return_value=stub),
+        patch("app.pipeline.process.get_llm_user_prompt", return_value=""),
+    ):
+        process.run(db, current_run)
+
+    assert stub.calls == []
+    assert current_run.newsletters_included == 0
+    assert db.query(Episode).filter(Episode.run_id == current_run.id).first() is None
+
+
+def test_run_passes_user_prompt_in_message(db, current_run):
+    _make_source(db, current_run.id)
+    stub = StubLLMProvider()
+
+    with (
+        patch("app.pipeline.process.get_llm_provider", return_value=stub),
+        patch("app.pipeline.process.get_llm_user_prompt", return_value="I love tech news"),
+    ):
+        process.run(db, current_run)
+
+    assert len(stub.calls) == 1
+    assert "I love tech news" in stub.calls[0]["user"]
+
+
+def test_run_includes_source_title_in_message(db, current_run):
+    _make_source(db, current_run.id, title="Important Article")
+    stub = StubLLMProvider()
+
+    with (
+        patch("app.pipeline.process.get_llm_provider", return_value=stub),
+        patch("app.pipeline.process.get_llm_user_prompt", return_value=""),
+    ):
+        process.run(db, current_run)
+
+    assert "Important Article" in stub.calls[0]["user"]
+
+
+def test_run_podcast_script_is_none(db, current_run):
+    _make_source(db, current_run.id)
+    stub = StubLLMProvider()
+
+    with (
+        patch("app.pipeline.process.get_llm_provider", return_value=stub),
+        patch("app.pipeline.process.get_llm_user_prompt", return_value=""),
+    ):
+        process.run(db, current_run)
+
+    episode = db.query(Episode).filter(Episode.run_id == current_run.id).first()
+    assert episode.podcast_script is None

@@ -105,6 +105,7 @@ def test_execute_pipeline_sets_success(db_session):
 
     with (
         patch("app.pipeline.ingest.run"),
+        patch("app.pipeline.process.run"),
         patch("app.scheduler.SessionLocal", return_value=db_session),
     ):
         execute_pipeline(run_id)
