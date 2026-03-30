@@ -7,7 +7,7 @@ from apscheduler.triggers.cron import CronTrigger
 from app.app_config import get_app_config
 from app.database import SessionLocal
 from app.models import Run
-from app.pipeline import ingest
+from app.pipeline import ingest, process
 from app.pipeline.sources.gmail import GmailSource
 
 scheduler = BackgroundScheduler()
@@ -39,6 +39,7 @@ def execute_pipeline(run_id: int) -> None:
         cfg = get_app_config()
         sources = [GmailSource(db=db, cfg=cfg["gmail"])]
         ingest.run(db, run, sources)
+        process.run(db, run)
         run.status = "success"
     except Exception as exc:
         if run is not None:
