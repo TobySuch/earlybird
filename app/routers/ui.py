@@ -2,7 +2,7 @@
 
 import markdown as md
 from fastapi import APIRouter, Depends, Form, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from markupsafe import Markup
 from sqlalchemy.orm import Session
@@ -19,6 +19,12 @@ from app.config import (
     SCHEDULE_CRON_KEY,
     SCHEDULE_ENABLED_DEFAULT,
     SCHEDULE_ENABLED_KEY,
+    TTS_ENABLED_DEFAULT,
+    TTS_ENABLED_KEY,
+    TTS_MODEL_ID_DEFAULT,
+    TTS_MODEL_ID_KEY,
+    TTS_VOICE_ID_DEFAULT,
+    TTS_VOICE_ID_KEY,
     get_db_config,
     set_db_config,
 )
@@ -79,6 +85,21 @@ async def episodes(request: Request, db: Session = Depends(get_db)):
     return templates.TemplateResponse(request, "episodes.html", {"episodes": episodes})
 
 
+@router.get("/episodes/{episode_id}/audio")
+async def episode_audio(episode_id: int, db: Session = Depends(get_db)):
+    from pathlib import Path
+
+    from fastapi import HTTPException
+
+    episode = db.get(Episode, episode_id)
+    if episode is None or not episode.audio_path:
+        raise HTTPException(status_code=404, detail="Audio not found")
+    path = Path(episode.audio_path)
+    if not path.exists():
+        raise HTTPException(status_code=404, detail="Audio file not found on disk")
+    return FileResponse(str(path), media_type="audio/mpeg")
+
+
 @router.get("/episodes/{episode_id}", response_class=HTMLResponse)
 async def episode_detail(episode_id: int, request: Request, db: Session = Depends(get_db)):
     episode = db.get(Episode, episode_id)
@@ -114,6 +135,10 @@ async def settings(request: Request, db: Session = Depends(get_db), saved: bool 
             "schedule_cron": get_db_config(db, SCHEDULE_CRON_KEY, SCHEDULE_CRON_DEFAULT),
             "schedule_enabled": get_db_config(db, SCHEDULE_ENABLED_KEY, SCHEDULE_ENABLED_DEFAULT)
             == "true",
+            "tts_enabled": get_db_config(db, TTS_ENABLED_KEY, TTS_ENABLED_DEFAULT) == "true",
+            "tts_voice_id": get_db_config(db, TTS_VOICE_ID_KEY, TTS_VOICE_ID_DEFAULT),
+            "tts_model_id": get_db_config(db, TTS_MODEL_ID_KEY, TTS_MODEL_ID_DEFAULT),
+            "tts_model_id_default": TTS_MODEL_ID_DEFAULT,
         },
     )
 
@@ -130,6 +155,9 @@ async def settings_post(
     llm_prompt: str = Form(""),
     schedule_cron: str = Form(SCHEDULE_CRON_DEFAULT),
     schedule_enabled: str | None = Form(None),
+    tts_enabled: str | None = Form(None),
+    tts_voice_id: str = Form(TTS_VOICE_ID_DEFAULT),
+    tts_model_id: str = Form(TTS_MODEL_ID_DEFAULT),
 ):
     set_db_config(db, GMAIL_LABEL_KEY, gmail_label.strip())
     set_db_config(db, GMAIL_PROCESSED_LABEL_KEY, gmail_processed_label.strip())
@@ -142,6 +170,10 @@ async def settings_post(
     set_db_config(db, SCHEDULE_CRON_KEY, schedule_cron.strip())
     set_db_config(db, SCHEDULE_ENABLED_KEY, "true" if enabled else "false")
     _reschedule(schedule_cron.strip(), enabled=enabled)
+
+    set_db_config(db, TTS_ENABLED_KEY, "true" if tts_enabled is not None else "false")
+    set_db_config(db, TTS_VOICE_ID_KEY, tts_voice_id.strip())
+    set_db_config(db, TTS_MODEL_ID_KEY, tts_model_id.strip())
 
     return RedirectResponse("/settings?saved=1", status_code=303)
 
