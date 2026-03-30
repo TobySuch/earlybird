@@ -42,6 +42,16 @@ async def episodes(request: Request, db: Session = Depends(get_db)):
     return templates.TemplateResponse(request, "episodes.html", {"episodes": episodes})
 
 
+@router.get("/episodes/{episode_id}", response_class=HTMLResponse)
+async def episode_detail(episode_id: int, request: Request, db: Session = Depends(get_db)):
+    episode = db.get(Episode, episode_id)
+    if episode is None:
+        from fastapi import HTTPException
+
+        raise HTTPException(status_code=404, detail="Episode not found")
+    return templates.TemplateResponse(request, "episode_detail.html", {"episode": episode})
+
+
 @router.get("/settings", response_class=HTMLResponse)
 async def settings(request: Request, db: Session = Depends(get_db), saved: bool = False):
     from app.gmail_auth import get_credentials
