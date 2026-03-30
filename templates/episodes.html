@@ -1,6 +1,76 @@
 {% extends "base.html" %}
 {% block title %}Episodes — Earlybird{% endblock %}
 {% block content %}
-<h1 class="text-2xl font-bold mb-6">Episodes</h1>
-<!-- TODO: list episodes -->
+
+<style>
+  .digest h1, .digest h2, .digest h3 {
+    font-weight: 600;
+    color: #111827;
+    margin-top: 1.5em;
+    margin-bottom: 0.4em;
+  }
+  .digest h1 { font-size: 1.2rem; }
+  .digest h2 { font-size: 1.05rem; border-bottom: 1px solid #f3f4f6; padding-bottom: 0.25em; }
+  .digest h3 { font-size: 0.95rem; }
+  .digest p { margin-bottom: 0.85rem; line-height: 1.75; color: #374151; }
+  .digest strong { font-weight: 600; color: #111827; }
+  .digest em { font-style: italic; }
+  .digest ul, .digest ol { margin-bottom: 0.85rem; padding-left: 1.4rem; }
+  .digest li { margin-bottom: 0.3rem; line-height: 1.65; color: #374151; }
+  .digest ul { list-style-type: disc; }
+  .digest ol { list-style-type: decimal; }
+  .digest :first-child { margin-top: 0; }
+</style>
+
+<div class="flex items-baseline justify-between mb-6">
+  <h1 class="text-2xl font-bold">Episodes</h1>
+  {% if episodes %}
+  <span class="text-sm text-gray-400">{{ episodes | length }} digest{% if episodes | length != 1 %}s{% endif %}</span>
+  {% endif %}
+</div>
+
+{% if episodes %}
+  <div class="space-y-4">
+    {% for episode in episodes %}
+    <div class="bg-white rounded-lg border border-gray-200 overflow-hidden" x-data="{ open: loop.first }">
+
+      <button
+        @click="open = !open"
+        class="w-full flex items-center justify-between px-6 py-4 text-left hover:bg-gray-50 transition-colors">
+        <div>
+          <div class="font-semibold text-gray-900 text-sm">
+            {{ episode.run.started_at.strftime("%A, %-d %B %Y") }}
+          </div>
+          <div class="text-xs text-gray-400 mt-0.5">
+            {{ episode.run.newsletters_included }} source{% if episode.run.newsletters_included != 1 %}s{% endif %}
+          </div>
+        </div>
+        <svg class="w-4 h-4 text-gray-400 flex-shrink-0 transition-transform duration-150"
+             :class="open ? 'rotate-180' : ''"
+             fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+        </svg>
+      </button>
+
+      <div x-show="open" x-cloak class="border-t border-gray-100">
+        {% if episode.newsletter_text %}
+          <div class="digest px-6 py-5 text-sm">
+            {{ episode.newsletter_text | markdown }}
+          </div>
+        {% else %}
+          <p class="px-6 py-4 text-sm text-gray-400 italic">No digest content.</p>
+        {% endif %}
+      </div>
+
+    </div>
+    {% endfor %}
+  </div>
+
+{% else %}
+  <div class="text-center py-16 text-gray-400">
+    <p class="text-base mb-1">No episodes yet.</p>
+    <p class="text-sm">Run the pipeline to generate your first digest.</p>
+  </div>
+{% endif %}
+
 {% endblock %}

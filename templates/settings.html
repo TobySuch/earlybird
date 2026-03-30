@@ -1,27 +1,97 @@
 {% extends "base.html" %}
 {% block title %}Settings — Earlybird{% endblock %}
 {% block content %}
-<h1 class="text-2xl font-bold mb-6">Settings</h1>
+<div class="flex items-baseline justify-between mb-6">
+  <h1 class="text-2xl font-bold">Settings</h1>
+</div>
 
-<section class="bg-white border border-gray-200 rounded-xl p-8 mb-6 shadow-sm">
-  <div class="flex items-start justify-between">
-    <div>
-      <h2 class="text-base font-semibold text-gray-900 mb-1">Gmail</h2>
-      {% if gmail_connected %}
-      <p class="text-sm text-green-600 font-medium">&#10003; Connected</p>
-      {% else %}
-      <p class="text-sm text-gray-500 mt-1">Not connected — authorise Earlybird to read your Gmail inbox.</p>
-      {% endif %}
+{% if saved %}
+<div class="mb-6 px-4 py-3 bg-green-50 border border-green-200 rounded text-sm text-green-700 font-medium">
+  Settings saved.
+</div>
+{% endif %}
+
+<form method="post" action="/settings" class="space-y-8">
+
+  {# ── Gmail ────────────────────────────────────────────────────────────── #}
+  <section class="bg-white border border-gray-200 rounded-lg overflow-hidden">
+    <div class="px-6 py-4 border-b border-gray-100">
+      <h2 class="text-sm font-semibold text-gray-900">Gmail</h2>
     </div>
-    <div class="ml-8 shrink-0">
-      {% if gmail_connected %}
-      <a href="/auth/gmail" class="text-sm text-blue-600 hover:underline">Re-authorise</a>
-      {% else %}
-      <a href="/auth/gmail" class="inline-block bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg">Connect Gmail</a>
-      {% endif %}
+    <div class="px-6 py-5 flex items-center justify-between">
+      <div>
+        {% if gmail_connected %}
+        <p class="text-sm text-green-600 font-medium">&#10003; Connected</p>
+        {% else %}
+        <p class="text-sm text-gray-500">Not connected — authorise Earlybird to read your Gmail inbox.</p>
+        {% endif %}
+      </div>
+      <div>
+        {% if gmail_connected %}
+        <a href="/auth/gmail" class="text-sm text-blue-600 hover:underline">Re-authorise</a>
+        {% else %}
+        <a href="/auth/gmail" class="inline-block bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded">Connect Gmail</a>
+        {% endif %}
+      </div>
     </div>
+  </section>
+
+  {# ── Digest ───────────────────────────────────────────────────────────── #}
+  <section class="bg-white border border-gray-200 rounded-lg overflow-hidden">
+    <div class="px-6 py-4 border-b border-gray-100">
+      <h2 class="text-sm font-semibold text-gray-900">Digest</h2>
+      <p class="text-xs text-gray-400 mt-0.5">Customise how newsletters are summarised.</p>
+    </div>
+    <div class="px-6 py-5 space-y-5">
+
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="block text-xs font-medium text-gray-600 mb-1.5" for="llm_provider">Provider</label>
+          <select id="llm_provider" name="llm_provider"
+            class="w-full text-sm border border-gray-300 rounded px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option value="anthropic" {% if llm_provider == "anthropic" %}selected{% endif %}>Anthropic</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-gray-600 mb-1.5" for="llm_model">Model</label>
+          <input id="llm_model" name="llm_model" type="text" value="{{ llm_model }}"
+            class="w-full text-sm border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="claude-haiku-4-5-20251001">
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-xs font-medium text-gray-600 mb-1.5" for="llm_prompt">Your preferences</label>
+        <textarea id="llm_prompt" name="llm_prompt" rows="6"
+          class="w-full text-sm border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          placeholder="Describe your interests, favourite topics, sections you want included or skipped, preferred tone, etc. The more specific you are, the better the digest.">{{ llm_prompt }}</textarea>
+        <p class="text-xs text-gray-400 mt-1.5">Injected into the prompt on every run. Leave blank to use the default system prompt only.</p>
+      </div>
+
+    </div>
+  </section>
+
+  {# ── Schedule ─────────────────────────────────────────────────────────── #}
+  <section class="bg-white border border-gray-200 rounded-lg overflow-hidden">
+    <div class="px-6 py-4 border-b border-gray-100">
+      <h2 class="text-sm font-semibold text-gray-900">Schedule</h2>
+      <p class="text-xs text-gray-400 mt-0.5">When the pipeline runs automatically.</p>
+    </div>
+    <div class="px-6 py-5">
+      <label class="block text-xs font-medium text-gray-600 mb-1.5" for="schedule_cron">Cron expression</label>
+      <input id="schedule_cron" name="schedule_cron" type="text" value="{{ schedule_cron }}"
+        class="w-full text-sm border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
+        placeholder="0 7 * * 1-5">
+      <p class="text-xs text-gray-400 mt-1.5">Default <code class="font-mono">0 7 * * 1-5</code> runs at 7 am on weekdays.</p>
+    </div>
+  </section>
+
+  <div class="flex justify-end">
+    <button type="submit"
+      class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded hover:bg-blue-700">
+      Save settings
+    </button>
   </div>
-</section>
 
-<!-- TODO: interest profile, TTS voice, ABS config, cron schedule -->
+</form>
 {% endblock %}
