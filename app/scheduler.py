@@ -72,8 +72,12 @@ def run_pipeline() -> None:
 def start_scheduler() -> None:
     """Start the scheduler with the cron expression from config."""
     cfg = get_app_config()
-    cron = cfg.get("schedule", {}).get("cron", "0 7 * * 1-5")
+    schedule_cfg = cfg.get("schedule", {})
+    cron = schedule_cfg.get("cron", "0 7 * * 1-5")
+    enabled = schedule_cfg.get("enabled", True)
     scheduler.add_job(run_pipeline, CronTrigger.from_crontab(cron), id="pipeline")
+    if not enabled:
+        scheduler.pause_job("pipeline")
     scheduler.start()
 
 
