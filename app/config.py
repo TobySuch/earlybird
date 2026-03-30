@@ -10,10 +10,9 @@ class Settings(BaseSettings):
     database_url: str = "sqlite:///./data/earlybird.db"
     anthropic_api_key: str = ""
     openai_api_key: str = ""
+    elevenlabs_api_key: str = ""
     gmail_client_id: str = ""
     gmail_client_secret: str = ""
-    abs_url: str = ""
-    abs_api_key: str = ""
 
     model_config = {"env_file": ".env", "extra": "ignore"}
 
@@ -35,6 +34,14 @@ GMAIL_PROCESSED_LABEL_DEFAULT = "earlybird-processed"
 GMAIL_LOOKBACK_DAYS_DEFAULT = "7"
 SCHEDULE_CRON_DEFAULT = "0 7 * * 1-5"
 SCHEDULE_ENABLED_DEFAULT = "true"
+
+TTS_ENABLED_KEY = "tts.enabled"
+TTS_VOICE_ID_KEY = "tts.voice_id"
+TTS_MODEL_ID_KEY = "tts.model_id"
+
+TTS_ENABLED_DEFAULT = "false"
+TTS_VOICE_ID_DEFAULT = ""
+TTS_MODEL_ID_DEFAULT = "eleven_turbo_v2_5"
 
 
 def get_db_config(db, key: str, default: str = "") -> str:

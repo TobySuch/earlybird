@@ -18,8 +18,8 @@ from app.config import (
     get_db_config,
 )
 from app.database import SessionLocal
-from app.models import Run
-from app.pipeline import ingest, process
+from app.models import Episode, Run
+from app.pipeline import ingest, process, publish
 from app.pipeline.sources.gmail import GmailSource
 
 scheduler = BackgroundScheduler()
@@ -64,6 +64,9 @@ def execute_pipeline(run_id: int) -> None:
             run.status = "success"
             return
         process.run(db, run)
+        episode = db.query(Episode).filter(Episode.run_id == run.id).first()
+        if episode:
+            publish.run(db, episode)
         run.status = "success"
     except Exception as exc:
         if run is not None:

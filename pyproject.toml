@@ -12,6 +12,7 @@ dependencies = [
     "google-api-python-client>=2.140.0",
     "google-auth-oauthlib>=1.2.0",
     "openai>=1.40.0",
+    "elevenlabs>=1.0.0",
     "jinja2>=3.1.0",
     "python-multipart>=0.0.9",
     "python-dotenv>=1.0.0",

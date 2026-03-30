@@ -97,6 +97,44 @@
     </div>
   </section>
 
+  {# ── Podcast ──────────────────────────────────────────────────────────── #}
+  <section class="bg-white border border-gray-200 rounded-lg overflow-hidden"
+    x-data="{ enabled: {{ 'true' if tts_enabled else 'false' }} }">
+    <div class="px-6 py-4 border-b border-gray-100">
+      <h2 class="text-sm font-semibold text-gray-900">Podcast</h2>
+      <p class="text-xs text-gray-400 mt-0.5">Generate an audio episode via ElevenLabs TTS. Requires <code class="font-mono">ELEVENLABS_API_KEY</code> in your environment.</p>
+    </div>
+    <div class="px-6 py-5 space-y-5">
+
+      <label class="flex items-center gap-2 cursor-pointer select-none text-sm text-gray-600">
+        <input type="checkbox" name="tts_enabled" value="1"
+          {% if tts_enabled %}checked{% endif %}
+          x-model="enabled"
+          class="text-blue-600 border-gray-300 rounded focus:ring-blue-500 cursor-pointer">
+        Generate audio on each run
+      </label>
+
+      <div class="grid grid-cols-2 gap-4" :class="!enabled && 'opacity-50 pointer-events-none'">
+        <div>
+          <label class="block text-xs font-medium text-gray-600 mb-1.5" for="tts_voice_id">Voice ID</label>
+          <input id="tts_voice_id" name="tts_voice_id" type="text" value="{{ tts_voice_id }}"
+            class="w-full text-sm border border-gray-300 rounded px-3 py-2 font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="e.g. 21m00Tcm4TlvDq8ikWAM">
+          <p class="text-xs text-gray-400 mt-1">Find voice IDs in your ElevenLabs account.</p>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-gray-600 mb-1.5" for="tts_model_id">Model ID</label>
+          <input id="tts_model_id" name="tts_model_id" type="text" value="{{ tts_model_id }}"
+            class="w-full text-sm border border-gray-300 rounded px-3 py-2 font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="{{ tts_model_id_default }}">
+          <p class="text-xs text-gray-400 mt-1">Default: <code class="font-mono">{{ tts_model_id_default }}</code></p>
+        </div>
+      </div>
+
+
+</div>
+  </section>
+
   {# ── Schedule ─────────────────────────────────────────────────────────── #}
   <section class="bg-white border border-gray-200 rounded-lg overflow-hidden"
     x-data="{ enabled: {{ 'true' if schedule_enabled else 'false' }} }">
