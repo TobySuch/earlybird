@@ -32,14 +32,14 @@
 {% if episodes %}
   <div class="space-y-4">
     {% for episode in episodes %}
-    <div class="bg-white rounded-lg border border-gray-200 overflow-hidden" x-data="{ open: loop.first }">
+    <div class="bg-white rounded-lg border border-gray-200 overflow-hidden" x-data="{ open: false }">
 
       <button
         @click="open = !open"
         class="w-full flex items-center justify-between px-6 py-4 text-left hover:bg-gray-50 transition-colors">
         <div>
           <div class="font-semibold text-gray-900 text-sm">
-            {{ episode.run.started_at.strftime("%A, %-d %B %Y") }}
+            {{ episode.run.started_at.strftime("%A, %-d %B %Y at %H:%M") }}
           </div>
           <div class="text-xs text-gray-400 mt-0.5">
             {{ episode.run.newsletters_included }} source{% if episode.run.newsletters_included != 1 %}s{% endif %}
