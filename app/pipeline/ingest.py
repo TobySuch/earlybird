@@ -29,6 +29,9 @@ def run(db: Session, current_run: Run, sources: list[NewsletterSource]) -> None:
         items = source.fetch(since)
         logger.info("Source %r returned %d item(s)", source, len(items))
         for item in items:
+            if not item.raw_content:
+                logger.info("Skipping %r — empty content", item.title)
+                continue
             _upsert(db, _item_to_news_source(item, current_run.id), current_run.id)
             count += 1
 
