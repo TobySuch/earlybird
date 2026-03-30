@@ -2,22 +2,12 @@ services:
   earlybird:
     build: .
     restart: unless-stopped
+    ports:
+      - "8000:8000"
     volumes:
-      # SQLite database, Gmail OAuth token, and config — persisted outside the container
+      # SQLite database, Gmail OAuth token, and audio files — persisted outside the container
       - ./data:/app/data
     environment:
       - DATABASE_URL=sqlite:////app/data/earlybird.db
     env_file:
       - .env
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.earlybird.rule=Host(`earlybird.${DOMAIN}`)"
-      - "traefik.http.routers.earlybird.entrypoints=websecure"
-      - "traefik.http.routers.earlybird.tls.certresolver=letsencrypt"
-      - "traefik.http.services.earlybird.loadbalancer.server.port=8000"
-    networks:
-      - traefik
-
-networks:
-  traefik:
-    external: true
