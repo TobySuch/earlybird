@@ -1,4 +1,4 @@
-.PHONY: install dev test lint build-assets db-init docker-build docker-up docker-down clean
+.PHONY: install dev test lint lint-check build-assets db-init docker-build docker-up docker-down clean
 
 # ── Python / uv ───────────────────────────────────────────────────────────────
 install:
@@ -15,6 +15,10 @@ test:
 lint:
 	uv run ruff check --fix .
 	uv run ruff format .
+
+lint-check:
+	uv run ruff check .
+	uv run ruff format --check .
 
 # ── Frontend / bun ────────────────────────────────────────────────────────────
 build-assets:
