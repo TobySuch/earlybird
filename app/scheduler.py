@@ -39,6 +39,10 @@ def execute_pipeline(run_id: int) -> None:
         cfg = get_app_config()
         sources = [GmailSource(db=db, cfg=cfg["gmail"])]
         ingest.run(db, run, sources)
+        if not run.newsletters_found:
+            app_logger.info("No newsletters found — skipping processing")
+            run.status = "success"
+            return
         process.run(db, run)
         run.status = "success"
     except Exception as exc:
