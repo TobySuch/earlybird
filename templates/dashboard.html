@@ -6,7 +6,19 @@
 <div class="grid grid-cols-2 gap-4 mb-6">
   <div class="p-4 bg-white rounded border border-gray-200">
     <p class="text-sm text-gray-500 mb-1">Episodes</p>
-    <p class="text-3xl font-semibold text-gray-900">{{ episode_count }}</p>
+    <div class="flex items-end justify-between">
+      <p class="text-3xl font-semibold text-gray-900">{{ episode_count }}</p>
+      {% if latest_episode %}
+      <a href="/episodes/{{ latest_episode.id }}"
+         class="inline-flex items-center justify-center w-9 h-9 bg-blue-600 hover:bg-blue-700 rounded transition-colors mb-0.5"
+         title="Latest episode">
+        <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
+        </svg>
+      </a>
+      {% endif %}
+    </div>
   </div>
 
   <div class="p-4 bg-white rounded border border-gray-200">
