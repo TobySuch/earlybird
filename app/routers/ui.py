@@ -7,9 +7,21 @@ from fastapi.templating import Jinja2Templates
 from markupsafe import Markup
 from sqlalchemy.orm import Session
 
-from app.app_config import get_app_config
 from app.auth import require_user
-from app.config import get_db_config, set_db_config
+from app.config import (
+    GMAIL_LABEL_DEFAULT,
+    GMAIL_LABEL_KEY,
+    GMAIL_LOOKBACK_DAYS_DEFAULT,
+    GMAIL_LOOKBACK_DAYS_KEY,
+    GMAIL_PROCESSED_LABEL_DEFAULT,
+    GMAIL_PROCESSED_LABEL_KEY,
+    SCHEDULE_CRON_DEFAULT,
+    SCHEDULE_CRON_KEY,
+    SCHEDULE_ENABLED_DEFAULT,
+    SCHEDULE_ENABLED_KEY,
+    get_db_config,
+    set_db_config,
+)
 from app.database import get_db
 from app.llm.factory import (
     DEFAULT_MODEL,
@@ -83,19 +95,25 @@ async def settings(request: Request, db: Session = Depends(get_db), saved: bool 
 
     creds = get_credentials()
     gmail_connected = creds is not None and creds.valid
-    cfg = get_app_config()
-    schedule_cfg = cfg.get("schedule", {})
     return templates.TemplateResponse(
         request,
         "settings.html",
         {
             "gmail_connected": gmail_connected,
             "saved": saved,
+            "gmail_label": get_db_config(db, GMAIL_LABEL_KEY, GMAIL_LABEL_DEFAULT),
+            "gmail_processed_label": get_db_config(
+                db, GMAIL_PROCESSED_LABEL_KEY, GMAIL_PROCESSED_LABEL_DEFAULT
+            ),
+            "gmail_lookback_days": get_db_config(
+                db, GMAIL_LOOKBACK_DAYS_KEY, GMAIL_LOOKBACK_DAYS_DEFAULT
+            ),
             "llm_provider": get_db_config(db, LLM_PROVIDER_KEY, DEFAULT_PROVIDER),
             "llm_model": get_db_config(db, LLM_MODEL_KEY, DEFAULT_MODEL),
             "llm_prompt": get_db_config(db, LLM_PROMPT_KEY, ""),
-            "schedule_cron": schedule_cfg.get("cron", "0 7 * * 1-5"),
-            "schedule_enabled": schedule_cfg.get("enabled", True),
+            "schedule_cron": get_db_config(db, SCHEDULE_CRON_KEY, SCHEDULE_CRON_DEFAULT),
+            "schedule_enabled": get_db_config(db, SCHEDULE_ENABLED_KEY, SCHEDULE_ENABLED_DEFAULT)
+            == "true",
         },
     )
 
@@ -104,39 +122,35 @@ async def settings(request: Request, db: Session = Depends(get_db), saved: bool 
 async def settings_post(
     request: Request,
     db: Session = Depends(get_db),
+    gmail_label: str = Form(GMAIL_LABEL_DEFAULT),
+    gmail_processed_label: str = Form(GMAIL_PROCESSED_LABEL_DEFAULT),
+    gmail_lookback_days: str = Form(GMAIL_LOOKBACK_DAYS_DEFAULT),
     llm_provider: str = Form(DEFAULT_PROVIDER),
     llm_model: str = Form(DEFAULT_MODEL),
     llm_prompt: str = Form(""),
-    schedule_cron: str = Form("0 7 * * 1-5"),
+    schedule_cron: str = Form(SCHEDULE_CRON_DEFAULT),
     schedule_enabled: str | None = Form(None),
 ):
+    set_db_config(db, GMAIL_LABEL_KEY, gmail_label.strip())
+    set_db_config(db, GMAIL_PROCESSED_LABEL_KEY, gmail_processed_label.strip())
+    set_db_config(db, GMAIL_LOOKBACK_DAYS_KEY, gmail_lookback_days.strip())
     set_db_config(db, LLM_PROVIDER_KEY, llm_provider.strip())
     set_db_config(db, LLM_MODEL_KEY, llm_model.strip())
     set_db_config(db, LLM_PROMPT_KEY, llm_prompt.strip())
 
-    _update_schedule(schedule_cron.strip(), enabled=schedule_enabled is not None)
+    enabled = schedule_enabled is not None
+    set_db_config(db, SCHEDULE_CRON_KEY, schedule_cron.strip())
+    set_db_config(db, SCHEDULE_ENABLED_KEY, "true" if enabled else "false")
+    _reschedule(schedule_cron.strip(), enabled=enabled)
 
     return RedirectResponse("/settings?saved=1", status_code=303)
 
 
-def _update_schedule(cron: str, enabled: bool = True) -> None:
-    """Write schedule settings to data/config.yml and update the running job."""
-    import yaml
-
-    from app.app_config import CONFIG_PATH, _reset_cache, get_app_config
-    from app.scheduler import scheduler
-
-    cfg = get_app_config()
-    schedule_cfg = cfg.get("schedule", {})
-    if schedule_cfg.get("cron") == cron and schedule_cfg.get("enabled", True) == enabled:
-        return  # unchanged
-
-    cfg["schedule"]["cron"] = cron
-    cfg["schedule"]["enabled"] = enabled
-    CONFIG_PATH.write_text(yaml.dump(cfg, default_flow_style=False, sort_keys=False))
-    _reset_cache()
-
+def _reschedule(cron: str, enabled: bool = True) -> None:
+    """Update the running APScheduler job with the new cron/enabled state."""
     from apscheduler.triggers.cron import CronTrigger
+
+    from app.scheduler import scheduler
 
     try:
         scheduler.reschedule_job("pipeline", trigger=CronTrigger.from_crontab(cron))

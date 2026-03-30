@@ -7,7 +7,6 @@ from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 
 from app import auth as auth_utils
-from app.app_config import get_app_config
 from app.config import get_settings
 from app.database import SessionLocal, init_db
 from app.routers import api, auth, ui
@@ -37,7 +36,6 @@ def _check_env() -> None:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    get_app_config()  # create data/config.yml from defaults if absent
     init_db()
     _check_env()
     start_scheduler()

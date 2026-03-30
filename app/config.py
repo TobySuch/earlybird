@@ -23,6 +23,20 @@ def get_settings() -> Settings:
     return Settings()
 
 
+# DB config keys for settings previously stored in config.yml
+GMAIL_LABEL_KEY = "gmail.label"
+GMAIL_PROCESSED_LABEL_KEY = "gmail.processed_label"
+GMAIL_LOOKBACK_DAYS_KEY = "gmail.lookback_days"
+SCHEDULE_CRON_KEY = "schedule.cron"
+SCHEDULE_ENABLED_KEY = "schedule.enabled"
+
+GMAIL_LABEL_DEFAULT = "Newsletters"
+GMAIL_PROCESSED_LABEL_DEFAULT = "earlybird-processed"
+GMAIL_LOOKBACK_DAYS_DEFAULT = "7"
+SCHEDULE_CRON_DEFAULT = "0 7 * * 1-5"
+SCHEDULE_ENABLED_DEFAULT = "true"
+
+
 def get_db_config(db, key: str, default: str = "") -> str:
     """Read a value from the config key/value table. Falls back to default."""
     from app.models import Config  # local import avoids circular deps at module load

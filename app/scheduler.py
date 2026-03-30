@@ -4,7 +4,19 @@ from datetime import datetime, timezone
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 
-from app.app_config import get_app_config
+from app.config import (
+    GMAIL_LABEL_DEFAULT,
+    GMAIL_LABEL_KEY,
+    GMAIL_LOOKBACK_DAYS_DEFAULT,
+    GMAIL_LOOKBACK_DAYS_KEY,
+    GMAIL_PROCESSED_LABEL_DEFAULT,
+    GMAIL_PROCESSED_LABEL_KEY,
+    SCHEDULE_CRON_DEFAULT,
+    SCHEDULE_CRON_KEY,
+    SCHEDULE_ENABLED_DEFAULT,
+    SCHEDULE_ENABLED_KEY,
+    get_db_config,
+)
 from app.database import SessionLocal
 from app.models import Run
 from app.pipeline import ingest, process
@@ -36,8 +48,16 @@ def execute_pipeline(run_id: int) -> None:
     run = None
     try:
         run = db.get(Run, run_id)
-        cfg = get_app_config()
-        sources = [GmailSource(db=db, cfg=cfg["gmail"])]
+        gmail_cfg = {
+            "label": get_db_config(db, GMAIL_LABEL_KEY, GMAIL_LABEL_DEFAULT),
+            "processed_label": get_db_config(
+                db, GMAIL_PROCESSED_LABEL_KEY, GMAIL_PROCESSED_LABEL_DEFAULT
+            ),
+            "lookback_days": int(
+                get_db_config(db, GMAIL_LOOKBACK_DAYS_KEY, GMAIL_LOOKBACK_DAYS_DEFAULT)
+            ),
+        }
+        sources = [GmailSource(db=db, cfg=gmail_cfg)]
         ingest.run(db, run, sources)
         if not run.newsletters_found:
             app_logger.info("No newsletters found — skipping processing")
@@ -74,11 +94,14 @@ def run_pipeline() -> None:
 
 
 def start_scheduler() -> None:
-    """Start the scheduler with the cron expression from config."""
-    cfg = get_app_config()
-    schedule_cfg = cfg.get("schedule", {})
-    cron = schedule_cfg.get("cron", "0 7 * * 1-5")
-    enabled = schedule_cfg.get("enabled", True)
+    """Start the scheduler with the cron expression from DB config."""
+    db = SessionLocal()
+    try:
+        cron = get_db_config(db, SCHEDULE_CRON_KEY, SCHEDULE_CRON_DEFAULT)
+        enabled = get_db_config(db, SCHEDULE_ENABLED_KEY, SCHEDULE_ENABLED_DEFAULT) == "true"
+    finally:
+        db.close()
+
     scheduler.add_job(run_pipeline, CronTrigger.from_crontab(cron), id="pipeline")
     if not enabled:
         scheduler.pause_job("pipeline")
