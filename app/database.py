@@ -1,7 +1,13 @@
-from sqlalchemy import create_engine
+from pathlib import Path
+
+from alembic import command
+from alembic.config import Config
+from sqlalchemy import create_engine, inspect
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
 from app.config import get_settings
+
+_ALEMBIC_INI = Path(__file__).parent.parent / "alembic.ini"
 
 
 class Base(DeclarativeBase):
@@ -21,10 +27,19 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
 def init_db() -> None:
-    """Create all tables. Safe to call on every startup."""
-    from app import models  # noqa: F401 — imported for side-effect of registering models
+    """Apply all pending Alembic migrations.
 
-    Base.metadata.create_all(bind=engine)
+    On first run of an existing DB created before migrations were introduced,
+    stamps the current state as head so future migrations apply cleanly.
+    """
+    alembic_cfg = Config(str(_ALEMBIC_INI))
+
+    existing_tables = inspect(engine).get_table_names()
+    if "alembic_version" not in existing_tables and existing_tables:
+        # Legacy DB: already at the initial schema state, just record that.
+        command.stamp(alembic_cfg, "head")
+    else:
+        command.upgrade(alembic_cfg, "head")
 
 
 def get_db():

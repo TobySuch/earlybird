@@ -24,6 +24,15 @@ build-assets:
 db-init:
 	uv run python -c "from app.database import init_db; init_db()"
 
+db-migrate:
+	uv run alembic revision --autogenerate -m "$(msg)"
+
+db-upgrade:
+	uv run alembic upgrade head
+
+db-downgrade:
+	uv run alembic downgrade -1
+
 # ── Docker ────────────────────────────────────────────────────────────────────
 docker-build:
 	docker compose build

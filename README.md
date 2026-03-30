@@ -68,7 +68,7 @@ Then tell Earlybird which label to use in the **Settings** page of the web UI af
 
 ```bash
 make install   # install Python deps + frontend deps + pre-commit hook
-make db-init   # create SQLite tables
+make db-init   # apply all migrations (creates DB on first run)
 make dev       # run with hot reload
 ```
 
@@ -123,3 +123,40 @@ make lint    # auto-fix with ruff
 ```
 
 Tests use an in-memory SQLite database and mock the Gmail API — no live credentials needed.
+
+## Database migrations
+
+Schema changes are managed with [Alembic](https://alembic.sqlalchemy.org/). Migrations live in `migrations/versions/`.
+
+On startup (and via `make db-init`) the app automatically runs `alembic upgrade head`, so deployments pick up new migrations without manual intervention.
+
+### Creating a migration
+
+After editing `app/models.py`, autogenerate a migration from the diff:
+
+```bash
+make db-migrate msg="add foo column to runs"
+```
+
+Review the generated file in `migrations/versions/` before committing — autogenerate is good but not perfect (it won't detect column renames, for example).
+
+### Applying migrations manually
+
+```bash
+make db-upgrade    # apply all pending migrations
+make db-downgrade  # roll back the last migration
+```
+
+Or use Alembic directly for more control:
+
+```bash
+uv run alembic current          # show current revision
+uv run alembic history          # list all revisions
+uv run alembic upgrade head     # apply all pending
+uv run alembic downgrade -1     # roll back one step
+uv run alembic downgrade base   # roll back everything
+```
+
+### Existing databases (pre-migration)
+
+If you have a database created before migrations were introduced, `init_db()` detects the missing `alembic_version` table and stamps it at `head` automatically. No data is lost and no tables are recreated.
