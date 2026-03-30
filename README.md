@@ -62,13 +62,7 @@ Earlybird filters by a Gmail label rather than scanning your whole inbox. Create
 1. In Gmail, click **+ Create new label** (left sidebar) and name it (e.g. `Newsletters`).
 2. Set up a filter (**Settings → Filters and Blocked Addresses → Create a new filter**) to automatically apply that label to incoming newsletters.
 
-Then tell Earlybird which label to use by editing `data/config.yml` (created automatically on first startup):
-
-```yaml
-gmail:
-  label: Newsletters          # the label to ingest from
-  processed_label: earlybird-processed  # applied after fetching so messages are skipped next run
-```
+Then tell Earlybird which label to use in the **Settings** page of the web UI after first login.
 
 ### 4. Install and run
 
@@ -86,12 +80,40 @@ You only need to do this once. The token is refreshed automatically.
 
 ## Docker
 
+### Prerequisites
+
+- [Docker](https://docs.docker.com/get-docker/) and Docker Compose v2 (`docker compose`)
+- A filled-in `.env` file (see [Environment variables](#2-environment-variables) above)
+
+### Running standalone (port 8000)
+
 ```bash
-cp .env.example .env   # fill in your values
-make docker-up
+cp .env.example .env      # fill in SECRET_KEY, GMAIL_*, ANTHROPIC_API_KEY
+mkdir -p data             # persisted DB, token, and audio live here
+make docker-up            # builds image and starts container
 ```
 
-On first run, visit `https://earlybird.yourdomain.com/auth/gmail` to complete the OAuth flow. The token and database are persisted in `./data/`.
+The app is now available at `http://localhost:8000`.
+
+### First-run setup
+
+1. **Create your account.** On first startup the container generates a one-time pairing code. Check the logs:
+
+   ```bash
+   docker compose logs earlybird | grep "Pairing code"
+   ```
+
+   Visit `http://localhost:8000/auth/signup`, enter the code, and set your password.
+
+2. **Authorise Gmail.** Visit `http://localhost:8000/auth/gmail`. You'll be redirected to Google's OAuth consent screen — sign in with the Gmail account you added as a test user. After approving, the token is saved to `./data/token.json` and refreshed automatically from then on.
+
+3. **Configure settings.** Visit `http://localhost:8000/settings` to set your Gmail label, interest profile, and any optional TTS settings.
+
+### Rebuilding after code changes
+
+```bash
+make docker-up   # always rebuilds before starting
+```
 
 ## Development
 

@@ -1,4 +1,4 @@
-.PHONY: install dev test lint build-assets db-init docker-up docker-down clean
+.PHONY: install dev test lint build-assets db-init docker-build docker-up docker-down clean
 
 # ── Python / uv ───────────────────────────────────────────────────────────────
 install:
@@ -25,7 +25,11 @@ db-init:
 	uv run python -c "from app.database import init_db; init_db()"
 
 # ── Docker ────────────────────────────────────────────────────────────────────
-docker-up:
+docker-build:
+	docker compose build
+
+docker-up: docker-build
+	mkdir -p data
 	docker compose up -d
 
 docker-down:
