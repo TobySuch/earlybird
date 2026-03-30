@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}{{ episode.run.started_at.strftime("%A, %-d %B %Y") }} — Earlybird{% endblock %}
+{% block content %}
+
+<style>
+  .digest h1, .digest h2, .digest h3 {
+    font-weight: 600;
+    color: #111827;
+    margin-top: 1.5em;
+    margin-bottom: 0.4em;
+  }
+  .digest h1 { font-size: 1.2rem; }
+  .digest h2 { font-size: 1.05rem; border-bottom: 1px solid #f3f4f6; padding-bottom: 0.25em; }
+  .digest h3 { font-size: 0.95rem; }
+  .digest p { margin-bottom: 0.85rem; line-height: 1.75; color: #374151; }
+  .digest strong { font-weight: 600; color: #111827; }
+  .digest em { font-style: italic; }
+  .digest ul, .digest ol { margin-bottom: 0.85rem; padding-left: 1.4rem; }
+  .digest li { margin-bottom: 0.3rem; line-height: 1.65; color: #374151; }
+  .digest ul { list-style-type: disc; }
+  .digest ol { list-style-type: decimal; }
+  .digest :first-child { margin-top: 0; }
+</style>
+
+<div class="mb-6">
+  <a href="/episodes" class="text-sm text-gray-400 hover:text-gray-600 transition-colors">&larr; All episodes</a>
+</div>
+
+<div class="mb-6">
+  <h1 class="text-2xl font-bold text-gray-900">
+    {{ episode.run.started_at.strftime("%A, %-d %B %Y") }}
+  </h1>
+  <div class="text-sm text-gray-400 mt-1">
+    {{ episode.run.started_at.strftime("%H:%M") }} &middot;
+    {{ episode.run.newsletters_included }} source{% if episode.run.newsletters_included != 1 %}s{% endif %}
+  </div>
+</div>
+
+<div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
+  {% if episode.newsletter_text %}
+    <div class="digest px-6 py-5 text-sm">
+      {{ episode.newsletter_text | markdown }}
+    </div>
+  {% else %}
+    <p class="px-6 py-4 text-sm text-gray-400 italic">No digest content.</p>
+  {% endif %}
+</div>
+
+{% endblock %}
