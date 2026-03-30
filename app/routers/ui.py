@@ -30,7 +30,10 @@ templates.env.filters["markdown"] = lambda text: Markup(
 @router.get("/", response_class=HTMLResponse)
 async def dashboard(request: Request, db: Session = Depends(get_db)):
     last_run = db.query(Run).order_by(Run.started_at.desc()).first()
-    return templates.TemplateResponse(request, "dashboard.html", {"last_run": last_run})
+    episode_count = db.query(Episode).count()
+    return templates.TemplateResponse(
+        request, "dashboard.html", {"last_run": last_run, "episode_count": episode_count}
+    )
 
 
 @router.get("/episodes", response_class=HTMLResponse)
