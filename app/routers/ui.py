@@ -27,6 +27,28 @@ templates.env.filters["markdown"] = lambda text: Markup(
 )
 
 
+def _timeago(dt) -> str:
+    from datetime import datetime, timezone
+
+    now = datetime.now(timezone.utc)
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    diff = int((now - dt).total_seconds())
+    if diff < 60:
+        return "just now"
+    if diff < 3600:
+        m = diff // 60
+        return f"{m} minute{'s' if m != 1 else ''} ago"
+    if diff < 86400:
+        h = diff // 3600
+        return f"{h} hour{'s' if h != 1 else ''} ago"
+    d = diff // 86400
+    return f"{d} day{'s' if d != 1 else ''} ago"
+
+
+templates.env.filters["timeago"] = _timeago
+
+
 @router.get("/", response_class=HTMLResponse)
 async def dashboard(request: Request, db: Session = Depends(get_db)):
     last_run = db.query(Run).order_by(Run.started_at.desc()).first()
