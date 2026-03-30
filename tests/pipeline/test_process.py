@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from unittest.mock import patch
 
 import pytest
@@ -28,7 +28,7 @@ def db():
 
 @pytest.fixture
 def current_run(db):
-    run = Run(started_at=datetime.utcnow(), status="running")
+    run = Run(started_at=datetime.now(timezone.utc), status="running")
     db.add(run)
     db.commit()
     db.refresh(run)

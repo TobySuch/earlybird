@@ -27,7 +27,7 @@ def db():
 
 @pytest.fixture
 def current_run(db):
-    run = Run(started_at=datetime.utcnow(), status="running")
+    run = Run(started_at=datetime.now(timezone.utc), status="running")
     db.add(run)
     db.commit()
     db.refresh(run)
