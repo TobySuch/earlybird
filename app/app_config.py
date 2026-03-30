@@ -26,6 +26,8 @@ DEFAULTS: dict = {
     "schedule": {
         # APScheduler cron expression for the daily pipeline run.
         "cron": "0 7 * * 1-5",
+        # Set to false to disable automatic scheduled runs entirely.
+        "enabled": True,
     },
 }
 
