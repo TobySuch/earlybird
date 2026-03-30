@@ -7,7 +7,11 @@ from datetime import datetime, timedelta, timezone
 
 from sqlalchemy.orm import Session
 
-from app.app_config import get_app_config
+from app.config import (
+    GMAIL_LOOKBACK_DAYS_DEFAULT,
+    GMAIL_LOOKBACK_DAYS_KEY,
+    get_db_config,
+)
 from app.models import NewsSource, Run
 from app.pipeline.sources.base import NewsletterSource, SourceItem
 
@@ -20,8 +24,7 @@ def run(db: Session, current_run: Run, sources: list[NewsletterSource]) -> None:
     Computes the lookback window from config, calls each source, and upserts
     items — deduplicating by URL within the current run.
     """
-    cfg = get_app_config()
-    lookback_days = int(cfg.get("gmail", {}).get("lookback_days", 7))
+    lookback_days = int(get_db_config(db, GMAIL_LOOKBACK_DAYS_KEY, GMAIL_LOOKBACK_DAYS_DEFAULT))
     since = datetime.now(timezone.utc) - timedelta(days=lookback_days)
 
     count = 0

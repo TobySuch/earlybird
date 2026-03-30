@@ -1,7 +1,6 @@
 """Tests for app/pipeline/ingest.py — coordinator logic with stub sources."""
 
 from datetime import datetime, timezone
-from unittest.mock import patch
 
 import pytest
 from sqlalchemy import create_engine
@@ -11,10 +10,6 @@ from app.database import Base
 from app.models import NewsSource, Run
 from app.pipeline import ingest
 from app.pipeline.sources.base import SourceItem
-
-_BASE_CFG = {
-    "gmail": {"label": "Newsletters", "processed_label": "earlybird-processed", "lookback_days": 7}
-}
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────
 
@@ -67,10 +62,7 @@ class StubSource:
 # ── Tests ─────────────────────────────────────────────────────────────────────
 
 
-@patch("app.pipeline.ingest.get_app_config")
-def test_run_stores_items(mock_cfg, db, current_run):
-    mock_cfg.return_value = _BASE_CFG
-
+def test_run_stores_items(db, current_run):
     sources = [
         StubSource(
             [_make_item("A", "https://a.example.com"), _make_item("B", "https://b.example.com")]
@@ -83,10 +75,7 @@ def test_run_stores_items(mock_cfg, db, current_run):
     assert current_run.newsletters_found == 2
 
 
-@patch("app.pipeline.ingest.get_app_config")
-def test_run_deduplicates_by_url(mock_cfg, db, current_run):
-    mock_cfg.return_value = _BASE_CFG
-
+def test_run_deduplicates_by_url(db, current_run):
     shared_url = "https://shared.example.com"
     sources = [StubSource([_make_item("A", shared_url), _make_item("B", shared_url)])]
     ingest.run(db, current_run, sources)
@@ -96,19 +85,13 @@ def test_run_deduplicates_by_url(mock_cfg, db, current_run):
     assert rows[0].seen_count == 2
 
 
-@patch("app.pipeline.ingest.get_app_config")
-def test_run_no_items_sets_count_zero(mock_cfg, db, current_run):
-    mock_cfg.return_value = _BASE_CFG
-
+def test_run_no_items_sets_count_zero(db, current_run):
     ingest.run(db, current_run, [StubSource([])])
 
     assert current_run.newsletters_found == 0
 
 
-@patch("app.pipeline.ingest.get_app_config")
-def test_run_iterates_multiple_sources(mock_cfg, db, current_run):
-    mock_cfg.return_value = _BASE_CFG
-
+def test_run_iterates_multiple_sources(db, current_run):
     sources = [
         StubSource([_make_item("A", "https://a.example.com")]),
         StubSource([_make_item("B", "https://b.example.com")]),
@@ -120,24 +103,18 @@ def test_run_iterates_multiple_sources(mock_cfg, db, current_run):
     assert current_run.newsletters_found == 2
 
 
-@patch("app.pipeline.ingest.get_app_config")
-def test_run_passes_since_to_source(mock_cfg, db, current_run):
-    mock_cfg.return_value = _BASE_CFG
-
+def test_run_passes_since_to_source(db, current_run):
     stub = StubSource([])
     ingest.run(db, current_run, [stub])
 
     assert len(stub.fetch_calls) == 1
     since = stub.fetch_calls[0]
-    # since should be roughly 7 days ago
+    # since should be roughly 7 days ago (default lookback_days)
     now = datetime.now(timezone.utc)
     assert (now - since).days == 7
 
 
-@patch("app.pipeline.ingest.get_app_config")
-def test_run_persists_source_type(mock_cfg, db, current_run):
-    mock_cfg.return_value = _BASE_CFG
-
+def test_run_persists_source_type(db, current_run):
     sources = [StubSource([_make_item()])]
     ingest.run(db, current_run, sources)
 
