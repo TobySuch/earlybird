@@ -32,6 +32,10 @@ jobs:
 
   commitlint:
     runs-on: ubuntu-latest
+    # Dependabot's auto-generated commit body contains long URLs that exceed
+    # body-max-line-length. The commit header format is already enforced via
+    # the commit-message prefix in dependabot.yml, so skip linting here.
+    if: github.actor != 'dependabot[bot]'
     permissions:
       contents: read
       pull-requests: read
