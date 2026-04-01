@@ -197,7 +197,44 @@ def _reschedule(cron: str, enabled: bool = True) -> None:
 @router.get("/run-log", response_class=HTMLResponse)
 async def run_log(request: Request, db: Session = Depends(get_db)):
     runs = db.query(Run).order_by(Run.started_at.desc()).limit(50).all()
-    return templates.TemplateResponse(request, "run_log.html", {"runs": runs})
+    has_running = any(r.status == "running" for r in runs)
+    return templates.TemplateResponse(
+        request, "run_log.html", {"runs": runs, "has_running": has_running}
+    )
+
+
+@router.get("/partials/last-run", response_class=HTMLResponse)
+async def last_run_partial(request: Request, db: Session = Depends(get_db)):
+    last_run = db.query(Run).order_by(Run.started_at.desc()).first()
+    response = templates.TemplateResponse(request, "partials/last_run.html", {"last_run": last_run})
+    if last_run and last_run.status == "running":
+        response.headers["HX-Reswap"] = "none"
+    return response
+
+
+@router.get("/partials/run-log-rows", response_class=HTMLResponse)
+async def run_log_rows_partial(request: Request, db: Session = Depends(get_db)):
+    runs = db.query(Run).order_by(Run.started_at.desc()).limit(50).all()
+    has_running = any(r.status == "running" for r in runs)
+    response = templates.TemplateResponse(
+        request, "partials/run_log_tbody.html", {"runs": runs, "has_running": has_running}
+    )
+    if has_running:
+        response.headers["HX-Reswap"] = "none"
+    return response
+
+
+@router.get("/partials/run-detail/{run_id}", response_class=HTMLResponse)
+async def run_detail_partial(run_id: int, request: Request, db: Session = Depends(get_db)):
+    run = db.get(Run, run_id)
+    if run is None:
+        from fastapi import HTTPException
+
+        raise HTTPException(status_code=404, detail="Run not found")
+    response = templates.TemplateResponse(request, "partials/run_detail_content.html", {"run": run})
+    if run.status == "running":
+        response.headers["HX-Reswap"] = "none"
+    return response
 
 
 @router.get("/run-log/{run_id}", response_class=HTMLResponse)
