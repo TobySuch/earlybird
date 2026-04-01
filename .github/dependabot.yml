@@ -6,6 +6,9 @@ updates:
       interval: "daily"
     labels:
       - "dependencies"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
 
   - package-ecosystem: "npm"
     directory: "/"
@@ -13,6 +16,9 @@ updates:
       interval: "daily"
     labels:
       - "dependencies"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
 
   - package-ecosystem: "github-actions"
     directory: "/"
@@ -20,3 +26,6 @@ updates:
       interval: "daily"
     labels:
       - "dependencies"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
