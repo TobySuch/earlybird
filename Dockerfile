@@ -21,6 +21,8 @@ COPY pyproject.toml uv.lock ./
 RUN uv sync --no-dev --frozen
 
 COPY app/ app/
+COPY migrations/ migrations/
+COPY alembic.ini ./
 COPY templates/ templates/
 COPY --from=frontend /build/static/ static/
 
