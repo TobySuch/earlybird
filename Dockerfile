@@ -5,7 +5,6 @@ WORKDIR /build
 COPY package.json bun.lock ./
 RUN bun install --frozen-lockfile
 
-COPY tailwind.config.js ./
 COPY static/src/ static/src/
 COPY templates/ templates/
 
