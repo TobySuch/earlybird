@@ -4,6 +4,10 @@
     playing: false,
     currentTime: 0,
     duration: 0,
+    init() {
+      const a = $refs.audio;
+      if (a.readyState >= 1) this.duration = a.duration;
+    },
     toggle() {
       const a = $refs.audio;
       this.playing ? a.pause() : a.play();
@@ -21,8 +25,8 @@
     }
   }">
   <audio x-ref="audio" src="/episodes/{{ episode_id }}/audio" preload="metadata"
-    @loadedmetadata="duration = $refs.audio.duration"
-    @timeupdate="currentTime = $refs.audio.currentTime"
+    @loadedmetadata="duration = $el.duration"
+    @timeupdate="currentTime = $el.currentTime"
     @ended="playing = false">
   </audio>
   <div class="flex items-center gap-3 py-1">
