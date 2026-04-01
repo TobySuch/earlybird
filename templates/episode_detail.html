@@ -37,7 +37,7 @@
 </div>
 
 {% if episode.audio_path %}
-<div class="mb-4 bg-white rounded-lg border border-gray-200 px-4 py-3"
+<div class="mb-4 bg-white rounded-lg border border-gray-200 px-4 pt-4 pb-5"
   x-data="{
     playing: false,
     currentTime: 0,
@@ -63,7 +63,7 @@
     @timeupdate="currentTime = $refs.audio.currentTime"
     @ended="playing = false">
   </audio>
-  <div class="flex items-center gap-3">
+  <div class="flex items-center gap-3 py-1">
     <button @click="toggle()"
       class="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full bg-blue-600 hover:bg-blue-700 text-white transition-colors">
       <svg x-show="!playing" class="w-3.5 h-3.5 translate-x-px" fill="currentColor" viewBox="0 0 16 16">
@@ -75,7 +75,8 @@
     </button>
     <input type="range" min="0" :max="duration || 0" step="0.1" :value="currentTime"
       @input="seek($event.target.value)"
-      class="flex-1 h-1.5 accent-blue-600 cursor-pointer">
+      class="flex-1 accent-blue-600 cursor-pointer"
+      style="overflow: visible;">
     <span x-text="fmt(currentTime) + ' / ' + fmt(duration)"
       class="flex-shrink-0 text-xs text-gray-400 font-mono w-24 text-right tabular-nums"></span>
   </div>

@@ -86,3 +86,29 @@ static/            # CSS, minimal JS
 **Database tables:** `runs`, `sources`, `stories`, `episodes`, `config` — see `app/models.py` for the full schema.
 
 **LLM usage:** Claude Haiku only, invoked in `pipeline/process.py`. User provides a natural-language interest profile stored in `config` that is injected into the prompt.
+
+## Visual preview / browser inspection
+
+The app requires a logged-in session. When using the Claude Preview tool to inspect the UI, create a throwaway `preview` user first:
+
+```bash
+uv run python - <<'EOF'
+from sqlalchemy.orm import Session
+from app.database import engine
+from app.models import User
+from app.auth import hash_password
+with Session(engine) as db:
+    if not db.query(User).filter(User.username == "preview").first():
+        db.add(User(username="preview", password_hash=hash_password("preview")))
+        db.commit()
+        print("Created preview user")
+    else:
+        print("Preview user already exists")
+EOF
+```
+
+Then log in via the preview tool using `username=preview / password=preview`. The preview user is harmless — it has no special permissions and the real user's data is still accessible for inspection.
+
+### Known browser quirks
+
+- **Firefox clips `input[type=range]` thumb shadows** — Firefox's UA stylesheet applies `overflow: hidden` to range inputs with a specificity that beats Tailwind utility classes. Two things are needed: (1) remove any fixed `h-*` height class from the `<input>` itself (a 6px height creates the clipping box), and (2) use an inline `style="overflow: visible"` attribute rather than a Tailwind class, as inline styles win the specificity battle against UA stylesheets.
