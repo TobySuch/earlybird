@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "partials/audio_widget.html" import audio_widget %}
 {% block title %}Episodes — Earlybird{% endblock %}
 {% block content %}
 
@@ -65,50 +66,7 @@
 
       <div x-show="open" x-cloak class="border-t border-gray-100">
         {% if episode.audio_path %}
-        <div class="px-4 pt-4 pb-5"
-          x-data="{
-            playing: false,
-            currentTime: 0,
-            duration: 0,
-            toggle() {
-              const a = $refs.audio_{{ episode.id }};
-              this.playing ? a.pause() : a.play();
-              this.playing = !this.playing;
-            },
-            seek(val) {
-              $refs.audio_{{ episode.id }}.currentTime = val;
-              this.currentTime = val;
-            },
-            fmt(s) {
-              if (!s || isNaN(s)) return '0:00';
-              const m = Math.floor(s / 60);
-              const sec = String(Math.floor(s % 60)).padStart(2, '0');
-              return m + ':' + sec;
-            }
-          }">
-          <audio x-ref="audio_{{ episode.id }}" src="/episodes/{{ episode.id }}/audio" preload="metadata"
-            @loadedmetadata="duration = $refs.audio_{{ episode.id }}.duration"
-            @timeupdate="currentTime = $refs.audio_{{ episode.id }}.currentTime"
-            @ended="playing = false">
-          </audio>
-          <div class="flex items-center gap-3 py-1">
-            <button @click="toggle()"
-              class="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full bg-blue-600 hover:bg-blue-700 text-white transition-colors cursor-pointer">
-              <svg x-show="!playing" class="w-3.5 h-3.5 translate-x-px" fill="currentColor" viewBox="0 0 16 16">
-                <path d="M3 2.5l10 5.5-10 5.5V2.5z"/>
-              </svg>
-              <svg x-show="playing" class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 16 16">
-                <path d="M4 2h3v12H4zm5 0h3v12H9z"/>
-              </svg>
-            </button>
-            <input type="range" min="0" :max="duration || 0" step="0.1" :value="currentTime"
-              @input="seek($event.target.value)"
-              class="flex-1 accent-blue-600 cursor-pointer"
-              style="overflow: visible;">
-            <span x-text="fmt(currentTime) + ' / ' + fmt(duration)"
-              class="flex-shrink-0 text-xs text-gray-400 font-mono w-24 text-right tabular-nums"></span>
-          </div>
-        </div>
+          {{ audio_widget(episode.id) }}
         {% endif %}
         {% if episode.newsletter_text %}
           <div class="digest px-6 py-5 text-sm">
