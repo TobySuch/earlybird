@@ -5,6 +5,27 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{% block title %}Earlybird{% endblock %}</title>
   <link rel="stylesheet" href="/static/css/main.css?v=2">
+  <style>
+    /* Firefox range input — match Chrome/Safari accent-blue-600 appearance */
+    input[type=range]::-moz-range-track {
+      height: 6px;
+      border-radius: 9999px;
+      background: #e5e7eb; /* gray-200 */
+    }
+    input[type=range]::-moz-range-progress {
+      height: 6px;
+      border-radius: 9999px;
+      background: #2563eb; /* blue-600 */
+    }
+    input[type=range]::-moz-range-thumb {
+      width: 16px;
+      height: 16px;
+      border-radius: 9999px;
+      background: #2563eb; /* blue-600 */
+      border: none;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    }
+  </style>
   <script src="/static/js/htmx.min.js" defer></script>
   <script src="/static/js/alpine.min.js" defer></script>
 </head>
