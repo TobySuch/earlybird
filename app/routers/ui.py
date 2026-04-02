@@ -30,8 +30,10 @@ from app.config import (
 )
 from app.database import get_db
 from app.llm.factory import (
+    DEFAULT_BASE_URL,
     DEFAULT_MODEL,
     DEFAULT_PROVIDER,
+    LLM_BASE_URL_KEY,
     LLM_MODEL_KEY,
     LLM_PROMPT_KEY,
     LLM_PROVIDER_KEY,
@@ -132,6 +134,7 @@ async def settings(request: Request, db: Session = Depends(get_db), saved: bool 
             "llm_provider": get_db_config(db, LLM_PROVIDER_KEY, DEFAULT_PROVIDER),
             "llm_model": get_db_config(db, LLM_MODEL_KEY, DEFAULT_MODEL),
             "llm_prompt": get_db_config(db, LLM_PROMPT_KEY, ""),
+            "llm_base_url": get_db_config(db, LLM_BASE_URL_KEY, DEFAULT_BASE_URL),
             "schedule_cron": get_db_config(db, SCHEDULE_CRON_KEY, SCHEDULE_CRON_DEFAULT),
             "schedule_enabled": get_db_config(db, SCHEDULE_ENABLED_KEY, SCHEDULE_ENABLED_DEFAULT)
             == "true",
@@ -153,6 +156,7 @@ async def settings_post(
     llm_provider: str = Form(DEFAULT_PROVIDER),
     llm_model: str = Form(DEFAULT_MODEL),
     llm_prompt: str = Form(""),
+    llm_base_url: str = Form(DEFAULT_BASE_URL),
     schedule_cron: str = Form(SCHEDULE_CRON_DEFAULT),
     schedule_enabled: str | None = Form(None),
     tts_enabled: str | None = Form(None),
@@ -165,6 +169,7 @@ async def settings_post(
     set_db_config(db, LLM_PROVIDER_KEY, llm_provider.strip())
     set_db_config(db, LLM_MODEL_KEY, llm_model.strip())
     set_db_config(db, LLM_PROMPT_KEY, llm_prompt.strip())
+    set_db_config(db, LLM_BASE_URL_KEY, llm_base_url.strip())
 
     enabled = schedule_enabled is not None
     set_db_config(db, SCHEDULE_CRON_KEY, schedule_cron.strip())

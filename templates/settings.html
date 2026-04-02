@@ -63,7 +63,8 @@
   </section>
 
   {# ── Digest ───────────────────────────────────────────────────────────── #}
-  <section class="bg-white border border-gray-200 rounded-lg overflow-hidden">
+  <section class="bg-white border border-gray-200 rounded-lg overflow-hidden"
+    x-data="{ provider: '{{ llm_provider }}' }">
     <div class="px-6 py-4 border-b border-gray-100">
       <h2 class="text-sm font-semibold text-gray-900">Digest</h2>
       <p class="text-xs text-gray-400 mt-0.5">Customise how newsletters are summarised.</p>
@@ -73,9 +74,10 @@
       <div class="grid grid-cols-2 gap-4">
         <div>
           <label class="block text-xs font-medium text-gray-600 mb-1.5" for="llm_provider">Provider</label>
-          <select id="llm_provider" name="llm_provider"
+          <select id="llm_provider" name="llm_provider" x-model="provider"
             class="w-full text-sm border border-gray-300 rounded px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer">
             <option value="anthropic" {% if llm_provider == "anthropic" %}selected{% endif %}>Anthropic</option>
+            <option value="openai" {% if llm_provider == "openai" %}selected{% endif %}>OpenAI / compatible</option>
           </select>
         </div>
         <div>
@@ -84,6 +86,14 @@
             class="w-full text-sm border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
             placeholder="claude-haiku-4-5-20251001">
         </div>
+      </div>
+
+      <div x-show="provider === 'openai'" x-cloak>
+        <label class="block text-xs font-medium text-gray-600 mb-1.5" for="llm_base_url">Base URL <span class="font-normal text-gray-400">(optional)</span></label>
+        <input id="llm_base_url" name="llm_base_url" type="text" value="{{ llm_base_url }}"
+          class="w-full text-sm border border-gray-300 rounded px-3 py-2 font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"
+          placeholder="http://localhost:11434/v1">
+        <p class="text-xs text-gray-400 mt-1">Leave blank for the standard OpenAI API. Set to a custom endpoint for Ollama, LM Studio, vLLM, etc.</p>
       </div>
 
       <div>
