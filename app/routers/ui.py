@@ -23,6 +23,10 @@ from app.config import (
     TTS_ENABLED_KEY,
     TTS_MODEL_ID_DEFAULT,
     TTS_MODEL_ID_KEY,
+    TTS_OPENAI_BASE_URL_DEFAULT,
+    TTS_OPENAI_BASE_URL_KEY,
+    TTS_PROVIDER_DEFAULT,
+    TTS_PROVIDER_KEY,
     TTS_VOICE_ID_DEFAULT,
     TTS_VOICE_ID_KEY,
     get_db_config,
@@ -139,9 +143,12 @@ async def settings(request: Request, db: Session = Depends(get_db), saved: bool 
             "schedule_enabled": get_db_config(db, SCHEDULE_ENABLED_KEY, SCHEDULE_ENABLED_DEFAULT)
             == "true",
             "tts_enabled": get_db_config(db, TTS_ENABLED_KEY, TTS_ENABLED_DEFAULT) == "true",
+            "tts_provider": get_db_config(db, TTS_PROVIDER_KEY, TTS_PROVIDER_DEFAULT),
             "tts_voice_id": get_db_config(db, TTS_VOICE_ID_KEY, TTS_VOICE_ID_DEFAULT),
             "tts_model_id": get_db_config(db, TTS_MODEL_ID_KEY, TTS_MODEL_ID_DEFAULT),
-            "tts_model_id_default": TTS_MODEL_ID_DEFAULT,
+            "tts_openai_base_url": get_db_config(
+                db, TTS_OPENAI_BASE_URL_KEY, TTS_OPENAI_BASE_URL_DEFAULT
+            ),
         },
     )
 
@@ -160,8 +167,10 @@ async def settings_post(
     schedule_cron: str = Form(SCHEDULE_CRON_DEFAULT),
     schedule_enabled: str | None = Form(None),
     tts_enabled: str | None = Form(None),
+    tts_provider: str = Form(TTS_PROVIDER_DEFAULT),
     tts_voice_id: str = Form(TTS_VOICE_ID_DEFAULT),
     tts_model_id: str = Form(TTS_MODEL_ID_DEFAULT),
+    tts_openai_base_url: str = Form(TTS_OPENAI_BASE_URL_DEFAULT),
 ):
     set_db_config(db, GMAIL_LABEL_KEY, gmail_label.strip())
     set_db_config(db, GMAIL_PROCESSED_LABEL_KEY, gmail_processed_label.strip())
@@ -177,8 +186,10 @@ async def settings_post(
     _reschedule(schedule_cron.strip(), enabled=enabled)
 
     set_db_config(db, TTS_ENABLED_KEY, "true" if tts_enabled is not None else "false")
+    set_db_config(db, TTS_PROVIDER_KEY, tts_provider.strip())
     set_db_config(db, TTS_VOICE_ID_KEY, tts_voice_id.strip())
     set_db_config(db, TTS_MODEL_ID_KEY, tts_model_id.strip())
+    set_db_config(db, TTS_OPENAI_BASE_URL_KEY, tts_openai_base_url.strip())
 
     return RedirectResponse("/settings?saved=1", status_code=303)
 

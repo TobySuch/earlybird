@@ -41,9 +41,11 @@ def episode(db):
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 
-def _mock_settings(api_key="test-key"):
+def _mock_settings(elevenlabs_api_key="test-key", openai_api_key="", openai_tts_api_key=""):
     s = MagicMock()
-    s.elevenlabs_api_key = api_key
+    s.elevenlabs_api_key = elevenlabs_api_key
+    s.openai_api_key = openai_api_key
+    s.openai_tts_api_key = openai_tts_api_key
     return s
 
 
@@ -51,6 +53,7 @@ def _db_config(overrides: dict):
     """Return a get_db_config-compatible function with given key overrides."""
     defaults = {
         "tts.enabled": "true",
+        "tts.provider": "elevenlabs",
         "tts.voice_id": "voice123",
         "tts.model_id": "eleven_monolingual_v1",
         "abs.library_id": "",
@@ -79,14 +82,77 @@ def test_run_skips_when_tts_disabled(db, episode):
     assert episode.audio_path is None
 
 
-def test_run_skips_when_no_api_key(db, episode):
+def test_run_skips_when_no_elevenlabs_api_key(db, episode):
     with (
         patch("app.pipeline.publish.get_db_config", side_effect=_db_config({})),
-        patch("app.pipeline.publish.get_settings", return_value=_mock_settings(api_key="")),
+        patch(
+            "app.pipeline.publish.get_settings",
+            return_value=_mock_settings(elevenlabs_api_key=""),
+        ),
     ):
         publish.run(db, episode)
 
     assert episode.audio_path is None
+
+
+def test_run_skips_when_no_openai_api_key(db, episode):
+    with (
+        patch(
+            "app.pipeline.publish.get_db_config",
+            side_effect=_db_config({"tts.provider": "openai"}),
+        ),
+        patch(
+            "app.pipeline.publish.get_settings",
+            return_value=_mock_settings(openai_api_key="", openai_tts_api_key=""),
+        ),
+    ):
+        publish.run(db, episode)
+
+    assert episode.audio_path is None
+
+
+def test_run_openai_tts_key_takes_precedence(db, episode, tmp_path):
+    """OPENAI_TTS_API_KEY is used when set, even if OPENAI_API_KEY differs."""
+    expected_path = tmp_path / f"episode_{episode.id}.mp3"
+    mock_provider = MagicMock()
+    mock_provider.generate.return_value = expected_path
+
+    with (
+        patch(
+            "app.pipeline.publish.get_db_config",
+            side_effect=_db_config({"tts.provider": "openai"}),
+        ),
+        patch(
+            "app.pipeline.publish.get_settings",
+            return_value=_mock_settings(openai_api_key="general-key", openai_tts_api_key="tts-key"),
+        ),
+        patch("app.pipeline.publish.get_tts_provider", return_value=mock_provider),
+    ):
+        publish.run(db, episode)
+
+    assert episode.audio_path == str(expected_path)
+
+
+def test_run_openai_falls_back_to_openai_api_key(db, episode, tmp_path):
+    """Falls back to OPENAI_API_KEY when OPENAI_TTS_API_KEY is not set."""
+    expected_path = tmp_path / f"episode_{episode.id}.mp3"
+    mock_provider = MagicMock()
+    mock_provider.generate.return_value = expected_path
+
+    with (
+        patch(
+            "app.pipeline.publish.get_db_config",
+            side_effect=_db_config({"tts.provider": "openai"}),
+        ),
+        patch(
+            "app.pipeline.publish.get_settings",
+            return_value=_mock_settings(openai_api_key="general-key", openai_tts_api_key=""),
+        ),
+        patch("app.pipeline.publish.get_tts_provider", return_value=mock_provider),
+    ):
+        publish.run(db, episode)
+
+    assert episode.audio_path == str(expected_path)
 
 
 def test_run_skips_when_no_voice_id(db, episode):
@@ -114,61 +180,23 @@ def test_run_skips_when_no_newsletter_text(db, episode):
 
 def test_run_sets_audio_path(db, episode, tmp_path):
     expected_path = tmp_path / f"episode_{episode.id}.mp3"
+    mock_provider = MagicMock()
+    mock_provider.generate.return_value = expected_path
 
     with (
         patch("app.pipeline.publish.get_db_config", side_effect=_db_config({})),
         patch("app.pipeline.publish.get_settings", return_value=_mock_settings()),
-        patch("app.pipeline.publish._generate_audio", return_value=expected_path) as mock_gen,
+        patch("app.pipeline.publish.get_tts_provider", return_value=mock_provider),
     ):
         publish.run(db, episode)
 
     assert episode.audio_path == str(expected_path)
-    mock_gen.assert_called_once_with(
-        "test-key", "voice123", "eleven_monolingual_v1", episode.newsletter_text, episode.id
-    )
-
-
-# ── _generate_audio() tests ───────────────────────────────────────────────────
-
-
-def test_generate_audio_writes_mp3(tmp_path):
-    fake_audio = b"FAKEMP3DATA"
-    mock_client = MagicMock()
-    mock_client.text_to_speech.convert.return_value = iter([fake_audio])
-
-    with patch("app.pipeline.publish.ElevenLabs", return_value=mock_client):
-        result = publish._generate_audio(
-            api_key="key",
-            voice_id="v1",
-            model_id="eleven_monolingual_v1",
-            text="Hello world",
-            episode_id=42,
-            audio_dir=tmp_path,
-        )
-
-    assert result == tmp_path / "episode_42.mp3"
-    assert result.read_bytes() == fake_audio
-
-
-def test_generate_audio_calls_elevenlabs_with_correct_args(tmp_path):
-    mock_client = MagicMock()
-    mock_client.text_to_speech.convert.return_value = iter([b"audio"])
-
-    with patch("app.pipeline.publish.ElevenLabs", return_value=mock_client):
-        publish._generate_audio(
-            api_key="mykey",
-            voice_id="myvoice",
-            model_id="eleven_turbo_v2",
-            text="Test text",
-            episode_id=1,
-            audio_dir=tmp_path,
-        )
-
-    mock_client.text_to_speech.convert.assert_called_once_with(
-        voice_id="myvoice",
-        text="Test text",
-        model_id="eleven_turbo_v2",
-        output_format="mp3_44100_128",
+    mock_provider.generate.assert_called_once_with(
+        "voice123",
+        "eleven_monolingual_v1",
+        episode.newsletter_text,
+        episode.id,
+        publish.AUDIO_DIR,
     )
 
 
