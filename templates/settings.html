@@ -109,10 +109,12 @@
 
   {# ── Podcast ──────────────────────────────────────────────────────────── #}
   <section class="bg-white border border-gray-200 rounded-lg overflow-hidden"
-    x-data="{ enabled: {{ 'true' if tts_enabled else 'false' }} }">
+    x-data="{ enabled: {{ 'true' if tts_enabled else 'false' }}, provider: '{{ tts_provider }}' }">
     <div class="px-6 py-4 border-b border-gray-100">
       <h2 class="text-sm font-semibold text-gray-900">Podcast</h2>
-      <p class="text-xs text-gray-400 mt-0.5">Generate an audio episode via ElevenLabs TTS. Requires <code class="font-mono">ELEVENLABS_API_KEY</code> in your environment.</p>
+      <p x-show="provider === 'elevenlabs'" x-cloak class="text-xs text-gray-400 mt-0.5">Generate an audio episode via ElevenLabs TTS. Requires <code class="font-mono">ELEVENLABS_API_KEY</code> in your environment.</p>
+      <p x-show="provider === 'openai'" x-cloak class="text-xs text-gray-400 mt-0.5">Generate an audio episode via OpenAI TTS. Uses <code class="font-mono">OPENAI_API_KEY</code> from your environment.</p>
+      <p x-show="provider !== 'elevenlabs' && provider !== 'openai'" x-cloak class="text-xs text-gray-400 mt-0.5">Generate an audio episode via TTS.</p>
     </div>
     <div class="px-6 py-5 space-y-5">
 
@@ -126,23 +128,43 @@
 
       <div class="grid grid-cols-2 gap-4" :class="!enabled && 'opacity-50 pointer-events-none'">
         <div>
-          <label class="block text-xs font-medium text-gray-600 mb-1.5" for="tts_voice_id">Voice ID</label>
-          <input id="tts_voice_id" name="tts_voice_id" type="text" value="{{ tts_voice_id }}"
-            class="w-full text-sm border border-gray-300 rounded px-3 py-2 font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="e.g. 21m00Tcm4TlvDq8ikWAM">
-          <p class="text-xs text-gray-400 mt-1">Find voice IDs in your ElevenLabs account.</p>
-        </div>
-        <div>
-          <label class="block text-xs font-medium text-gray-600 mb-1.5" for="tts_model_id">Model ID</label>
-          <input id="tts_model_id" name="tts_model_id" type="text" value="{{ tts_model_id }}"
-            class="w-full text-sm border border-gray-300 rounded px-3 py-2 font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="{{ tts_model_id_default }}">
-          <p class="text-xs text-gray-400 mt-1">Default: <code class="font-mono">{{ tts_model_id_default }}</code></p>
+          <label class="block text-xs font-medium text-gray-600 mb-1.5" for="tts_provider">Provider</label>
+          <select id="tts_provider" name="tts_provider" x-model="provider"
+            class="w-full text-sm border border-gray-300 rounded px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer">
+            <option value="elevenlabs" {% if tts_provider == "elevenlabs" %}selected{% endif %}>ElevenLabs</option>
+            <option value="openai" {% if tts_provider == "openai" %}selected{% endif %}>OpenAI / compatible</option>
+          </select>
         </div>
       </div>
 
+      <div class="grid grid-cols-2 gap-4" :class="!enabled && 'opacity-50 pointer-events-none'">
+        <div>
+          <label class="block text-xs font-medium text-gray-600 mb-1.5" for="tts_voice_id">Voice</label>
+          <input id="tts_voice_id" name="tts_voice_id" type="text" value="{{ tts_voice_id }}"
+            class="w-full text-sm border border-gray-300 rounded px-3 py-2 font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="e.g. 21m00Tcm4TlvDq8ikWAM">
+          <p x-show="provider === 'elevenlabs'" x-cloak class="text-xs text-gray-400 mt-1">Find voice IDs in your ElevenLabs account.</p>
+          <p x-show="provider === 'openai'" x-cloak class="text-xs text-gray-400 mt-1">OpenAI voice name, e.g. <code class="font-mono">alloy</code>, <code class="font-mono">nova</code>, <code class="font-mono">echo</code>.</p>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-gray-600 mb-1.5" for="tts_model_id">Model</label>
+          <input id="tts_model_id" name="tts_model_id" type="text" value="{{ tts_model_id }}"
+            class="w-full text-sm border border-gray-300 rounded px-3 py-2 font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="e.g. tts-1">
+          <p x-show="provider === 'elevenlabs'" x-cloak class="text-xs text-gray-400 mt-1">Default: <code class="font-mono">eleven_turbo_v2_5</code></p>
+          <p x-show="provider === 'openai'" x-cloak class="text-xs text-gray-400 mt-1">e.g. <code class="font-mono">tts-1</code>, <code class="font-mono">tts-1-hd</code>, <code class="font-mono">gpt-4o-mini-tts</code></p>
+        </div>
+      </div>
 
-</div>
+      <div x-show="provider === 'openai'" x-cloak :class="!enabled && 'opacity-50 pointer-events-none'">
+        <label class="block text-xs font-medium text-gray-600 mb-1.5" for="tts_openai_base_url">Base URL <span class="font-normal text-gray-400">(optional)</span></label>
+        <input id="tts_openai_base_url" name="tts_openai_base_url" type="text" value="{{ tts_openai_base_url }}"
+          class="w-full text-sm border border-gray-300 rounded px-3 py-2 font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"
+          placeholder="http://localhost:8080/v1">
+        <p class="text-xs text-gray-400 mt-1">Leave blank for the standard OpenAI API. Set to a custom endpoint for a self-hosted TTS server that implements the OpenAI <code class="font-mono">/v1/audio/speech</code> API.</p>
+      </div>
+
+    </div>
   </section>
 
   {# ── Schedule ─────────────────────────────────────────────────────────── #}

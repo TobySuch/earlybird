@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     database_url: str = "sqlite:///./data/earlybird.db"
     anthropic_api_key: str = ""
     openai_api_key: str = ""
+    openai_tts_api_key: str = ""
     elevenlabs_api_key: str = ""
     gmail_client_id: str = ""
     gmail_client_secret: str = ""
@@ -36,12 +37,16 @@ SCHEDULE_CRON_DEFAULT = "0 7 * * 1-5"
 SCHEDULE_ENABLED_DEFAULT = "true"
 
 TTS_ENABLED_KEY = "tts.enabled"
+TTS_PROVIDER_KEY = "tts.provider"
 TTS_VOICE_ID_KEY = "tts.voice_id"
 TTS_MODEL_ID_KEY = "tts.model_id"
+TTS_OPENAI_BASE_URL_KEY = "tts.openai_base_url"
 
 TTS_ENABLED_DEFAULT = "false"
+TTS_PROVIDER_DEFAULT = "elevenlabs"
 TTS_VOICE_ID_DEFAULT = ""
 TTS_MODEL_ID_DEFAULT = "eleven_turbo_v2_5"
+TTS_OPENAI_BASE_URL_DEFAULT = ""
 
 
 def get_db_config(db, key: str, default: str = "") -> str:
