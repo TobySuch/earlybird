@@ -30,3 +30,12 @@ class NewsletterSource(Protocol):
     def fetch(self, since: datetime) -> list[SourceItem]:
         """Return all items published or received since *since* (UTC)."""
         ...
+
+    def mark_processed(self) -> None:
+        """Mark all items returned by the last fetch() call as processed.
+
+        Called by the scheduler only after the full pipeline succeeds.
+        Sources that have no persistent processed-state tracking can leave
+        this as a no-op.
+        """
+        ...

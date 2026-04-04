@@ -61,12 +61,16 @@ def execute_pipeline(run_id: int) -> None:
         ingest.run(db, run, sources)
         if not run.newsletters_found:
             app_logger.info("No newsletters found — skipping processing")
+            for source in sources:
+                source.mark_processed()
             run.status = "success"
             return
         process.run(db, run)
         episode = db.query(Episode).filter(Episode.run_id == run.id).first()
         if episode:
             publish.run(db, episode)
+        for source in sources:
+            source.mark_processed()
         run.status = "success"
     except Exception as exc:
         if run is not None:

@@ -32,14 +32,16 @@ class GmailSource:
         self._db = db
         self._cfg = cfg
         self._service = None  # built lazily on first fetch()
+        self._pending_label_id: str | None = None
+        self._pending_msg_ids: list[str] = []
 
     # ── Public interface ──────────────────────────────────────────────────
 
     def fetch(self, since: datetime) -> list[SourceItem]:
         """Return all unprocessed newsletter items since *since*.
 
-        Also applies the processed label to each message so it is skipped
-        on future runs.
+        Labels are NOT applied here — call mark_processed() after the full
+        pipeline succeeds so that a mid-run error does not consume emails.
         """
         service = self._get_service()
 
@@ -54,17 +56,28 @@ class GmailSource:
         message_ids = self._list_messages(service, query)
         logger.info("Found %d message(s) matching query", len(message_ids))
 
-        processed_label_id = self._get_or_create_label(service, processed_label_name)
+        self._pending_label_id = self._get_or_create_label(service, processed_label_name)
+        self._pending_msg_ids = list(message_ids)
 
         items: list[SourceItem] = []
         for msg_id in message_ids:
             raw = self._fetch_message(service, msg_id)
             item = self._parse_to_source_item(raw)
             items.append(item)
-            self._apply_label(service, msg_id, processed_label_id)
             logger.info("Fetched item: %s", item.title)
 
         return items
+
+    def mark_processed(self) -> None:
+        """Apply the processed label to all messages fetched in the last fetch() call."""
+        if not self._pending_msg_ids or not self._pending_label_id:
+            return
+        service = self._get_service()
+        for msg_id in self._pending_msg_ids:
+            self._apply_label(service, msg_id, self._pending_label_id)
+            logger.info("Marked message %s as processed", msg_id)
+        self._pending_msg_ids = []
+        self._pending_label_id = None
 
     # ── Private helpers ───────────────────────────────────────────────────
 

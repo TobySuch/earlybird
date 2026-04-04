@@ -232,19 +232,52 @@ def test_fetch_returns_source_items(mock_build, db):
 
 
 @patch("app.pipeline.sources.gmail.build_gmail_service")
-def test_fetch_applies_processed_label(mock_build, db):
+def test_fetch_does_not_apply_label(mock_build, db):
+    """fetch() must NOT apply the processed label — that is deferred to mark_processed()."""
     messages = [_make_message()]
     service = _build_mock_service(messages, label_id="lbl_processed")
     mock_build.return_value = service
+    service.users().messages().modify.reset_mock()
 
     source = GmailSource(db=db, cfg=_GMAIL_CFG)
     source.fetch(datetime(2024, 1, 1, tzinfo=timezone.utc))
 
-    service.users().messages().modify.assert_called_with(
+    service.users().messages().modify.assert_not_called()
+
+
+@patch("app.pipeline.sources.gmail.build_gmail_service")
+def test_mark_processed_applies_label_after_fetch(mock_build, db):
+    """mark_processed() applies the label to all messages from the last fetch()."""
+    messages = [_make_message()]
+    service = _build_mock_service(messages, label_id="lbl_processed")
+    mock_build.return_value = service
+    service.users().messages().modify.reset_mock()
+
+    source = GmailSource(db=db, cfg=_GMAIL_CFG)
+    source.fetch(datetime(2024, 1, 1, tzinfo=timezone.utc))
+    source.mark_processed()
+
+    service.users().messages().modify.assert_called_once_with(
         userId="me",
         id="msg001",
         body={"addLabelIds": ["lbl_processed"]},
     )
+
+
+@patch("app.pipeline.sources.gmail.build_gmail_service")
+def test_mark_processed_is_idempotent(mock_build, db):
+    """Calling mark_processed() twice does not apply the label a second time."""
+    messages = [_make_message()]
+    service = _build_mock_service(messages, label_id="lbl_processed")
+    mock_build.return_value = service
+    service.users().messages().modify.reset_mock()
+
+    source = GmailSource(db=db, cfg=_GMAIL_CFG)
+    source.fetch(datetime(2024, 1, 1, tzinfo=timezone.utc))
+    source.mark_processed()
+    source.mark_processed()
+
+    assert service.users().messages().modify.call_count == 1
 
 
 @patch("app.pipeline.sources.gmail.build_gmail_service")
