@@ -9,11 +9,18 @@ import openai
 logger = logging.getLogger(__name__)
 
 
+_OPENROUTER_HEADERS = {
+    "HTTP-Referer": "https://github.com/TobySuch/earlybird",
+    "X-OpenRouter-Title": "Earlybird",
+    "X-OpenRouter-Categories": "personal-agent",
+}
+
+
 class OpenAIProvider:
     """Calls OpenAI Chat Completions API. Satisfies the LLMProvider Protocol."""
 
     def __init__(self, api_key: str, model: str, base_url: str = "") -> None:
-        kwargs: dict = {"api_key": api_key}
+        kwargs: dict = {"api_key": api_key, "default_headers": _OPENROUTER_HEADERS}
         if base_url.strip():
             kwargs["base_url"] = base_url.strip()
         self._client = openai.OpenAI(**kwargs)
