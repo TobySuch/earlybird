@@ -116,6 +116,32 @@ def test_execute_pipeline_sets_success(db_session):
     assert refreshed.finished_at is not None
 
 
+# ── /api/unprocessed-count ────────────────────────────────────────────────────
+
+
+def test_unprocessed_count_returns_count(client):
+    with patch("app.pipeline.sources.gmail.GmailSource") as MockSource:
+        MockSource.return_value.count_unprocessed.return_value = 7
+        response = client.get("/api/unprocessed-count")
+    assert response.status_code == 200
+    assert response.json() == {"count": 7}
+
+
+def test_unprocessed_count_handles_error(client):
+    with patch("app.pipeline.sources.gmail.GmailSource") as MockSource:
+        MockSource.return_value.count_unprocessed.side_effect = RuntimeError(
+            "Gmail not authenticated."
+        )
+        response = client.get("/api/unprocessed-count")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["count"] is None
+    assert "Gmail not authenticated" in data["error"]
+
+
+# ── execute_pipeline ──────────────────────────────────────────────────────────
+
+
 def test_execute_pipeline_sets_error_on_exception(db_session):
     from app.scheduler import execute_pipeline
 

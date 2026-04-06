@@ -40,6 +40,41 @@ async def run_status(db: Session = Depends(get_db)):
     }
 
 
+@router.get("/unprocessed-count", dependencies=[Depends(require_user_api)])
+async def unprocessed_count(db: Session = Depends(get_db)):
+    """Count unprocessed Gmail messages using the same config as the pipeline."""
+    from datetime import timedelta
+
+    from app.config import (
+        GMAIL_LABEL_DEFAULT,
+        GMAIL_LABEL_KEY,
+        GMAIL_LOOKBACK_DAYS_DEFAULT,
+        GMAIL_LOOKBACK_DAYS_KEY,
+        GMAIL_PROCESSED_LABEL_DEFAULT,
+        GMAIL_PROCESSED_LABEL_KEY,
+        get_db_config,
+    )
+    from app.pipeline.sources.gmail import GmailSource
+
+    lookback_days = int(get_db_config(db, GMAIL_LOOKBACK_DAYS_KEY, GMAIL_LOOKBACK_DAYS_DEFAULT))
+    cfg = {
+        "label": get_db_config(db, GMAIL_LABEL_KEY, GMAIL_LABEL_DEFAULT),
+        "processed_label": get_db_config(
+            db, GMAIL_PROCESSED_LABEL_KEY, GMAIL_PROCESSED_LABEL_DEFAULT
+        ),
+        "lookback_days": lookback_days,
+    }
+    source = GmailSource(db=db, cfg=cfg)
+    since = datetime.now(timezone.utc) - timedelta(days=lookback_days)
+
+    try:
+        count = source.count_unprocessed(since)
+    except Exception as exc:
+        return {"count": None, "error": str(exc)}
+
+    return {"count": count}
+
+
 @router.get("/feed/{token}/feed.xml")
 async def podcast_feed(token: str, db: Session = Depends(get_db)):
     """Serve RSS 2.0 podcast feed at a hard-to-guess URL."""
