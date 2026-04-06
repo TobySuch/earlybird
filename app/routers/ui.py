@@ -21,6 +21,8 @@ from app.config import (
     SCHEDULE_ENABLED_KEY,
     TTS_ENABLED_DEFAULT,
     TTS_ENABLED_KEY,
+    TTS_INSTRUCTIONS_DEFAULT,
+    TTS_INSTRUCTIONS_KEY,
     TTS_MODEL_ID_DEFAULT,
     TTS_MODEL_ID_KEY,
     TTS_OPENAI_BASE_URL_DEFAULT,
@@ -149,6 +151,7 @@ async def settings(request: Request, db: Session = Depends(get_db), saved: bool 
             "tts_openai_base_url": get_db_config(
                 db, TTS_OPENAI_BASE_URL_KEY, TTS_OPENAI_BASE_URL_DEFAULT
             ),
+            "tts_instructions": get_db_config(db, TTS_INSTRUCTIONS_KEY, TTS_INSTRUCTIONS_DEFAULT),
         },
     )
 
@@ -171,6 +174,7 @@ async def settings_post(
     tts_voice_id: str = Form(TTS_VOICE_ID_DEFAULT),
     tts_model_id: str = Form(TTS_MODEL_ID_DEFAULT),
     tts_openai_base_url: str = Form(TTS_OPENAI_BASE_URL_DEFAULT),
+    tts_instructions: str = Form(TTS_INSTRUCTIONS_DEFAULT),
 ):
     set_db_config(db, GMAIL_LABEL_KEY, gmail_label.strip())
     set_db_config(db, GMAIL_PROCESSED_LABEL_KEY, gmail_processed_label.strip())
@@ -190,6 +194,7 @@ async def settings_post(
     set_db_config(db, TTS_VOICE_ID_KEY, tts_voice_id.strip())
     set_db_config(db, TTS_MODEL_ID_KEY, tts_model_id.strip())
     set_db_config(db, TTS_OPENAI_BASE_URL_KEY, tts_openai_base_url.strip())
+    set_db_config(db, TTS_INSTRUCTIONS_KEY, tts_instructions.strip())
 
     return RedirectResponse("/settings?saved=1", status_code=303)
 

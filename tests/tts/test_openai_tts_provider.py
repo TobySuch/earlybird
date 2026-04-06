@@ -49,6 +49,48 @@ def test_generate_passes_correct_args(tmp_path):
     )
 
 
+def test_generate_passes_instructions_when_set(tmp_path):
+    mock_response = MagicMock()
+    mock_response.iter_bytes.return_value = iter([b"audio"])
+
+    with patch("app.tts.openai_provider.openai.OpenAI") as mock_cls:
+        mock_create = mock_cls.return_value.audio.speech.create
+        mock_create.return_value = mock_response
+        provider = OpenAITTSProvider(api_key="key")
+        provider.generate(
+            voice_id="nova",
+            model_id="gpt-4o-mini-tts",
+            text="Test input",
+            episode_id=7,
+            audio_dir=tmp_path,
+            instructions="Speak slowly and clearly.",
+        )
+
+    call_kwargs = mock_create.call_args[1]
+    assert call_kwargs["instructions"] == "Speak slowly and clearly."
+
+
+def test_generate_omits_blank_instructions(tmp_path):
+    mock_response = MagicMock()
+    mock_response.iter_bytes.return_value = iter([b"audio"])
+
+    with patch("app.tts.openai_provider.openai.OpenAI") as mock_cls:
+        mock_create = mock_cls.return_value.audio.speech.create
+        mock_create.return_value = mock_response
+        provider = OpenAITTSProvider(api_key="key")
+        provider.generate(
+            voice_id="nova",
+            model_id="tts-1",
+            text="Test input",
+            episode_id=7,
+            audio_dir=tmp_path,
+            instructions="   ",
+        )
+
+    call_kwargs = mock_create.call_args[1]
+    assert "instructions" not in call_kwargs
+
+
 def test_base_url_passed_to_client(tmp_path):
     mock_response = MagicMock()
     mock_response.iter_bytes.return_value = iter([b"audio"])

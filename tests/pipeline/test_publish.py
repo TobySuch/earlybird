@@ -56,6 +56,7 @@ def _db_config(overrides: dict):
         "tts.provider": "elevenlabs",
         "tts.voice_id": "voice123",
         "tts.model_id": "eleven_monolingual_v1",
+        "tts.instructions": "",
         "abs.library_id": "",
         "abs.folder_id": "",
     }
@@ -197,6 +198,7 @@ def test_run_sets_audio_path(db, episode, tmp_path):
         episode.newsletter_text,
         episode.id,
         publish.AUDIO_DIR,
+        instructions="",
     )
 
 

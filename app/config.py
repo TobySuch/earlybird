@@ -41,12 +41,16 @@ TTS_PROVIDER_KEY = "tts.provider"
 TTS_VOICE_ID_KEY = "tts.voice_id"
 TTS_MODEL_ID_KEY = "tts.model_id"
 TTS_OPENAI_BASE_URL_KEY = "tts.openai_base_url"
+TTS_INSTRUCTIONS_KEY = "tts.instructions"
 
 TTS_ENABLED_DEFAULT = "false"
 TTS_PROVIDER_DEFAULT = "elevenlabs"
 TTS_VOICE_ID_DEFAULT = ""
 TTS_MODEL_ID_DEFAULT = "eleven_turbo_v2_5"
 TTS_OPENAI_BASE_URL_DEFAULT = ""
+TTS_INSTRUCTIONS_DEFAULT = (
+    "Speak in a warm, engaging tone — like a knowledgeable friend reading the morning news."
+)
 
 
 def get_db_config(db, key: str, default: str = "") -> str:
