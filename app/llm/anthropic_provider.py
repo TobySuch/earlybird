@@ -9,11 +9,18 @@ import anthropic
 logger = logging.getLogger(__name__)
 
 
+_OPENROUTER_HEADERS = {
+    "HTTP-Referer": "https://github.com/TobySuch/earlybird",
+    "X-OpenRouter-Title": "Earlybird",
+    "X-OpenRouter-Categories": "personal-agent",
+}
+
+
 class AnthropicProvider:
     """Calls Anthropic Messages API. Satisfies the LLMProvider Protocol."""
 
     def __init__(self, api_key: str, model: str) -> None:
-        self._client = anthropic.Anthropic(api_key=api_key)
+        self._client = anthropic.Anthropic(api_key=api_key, default_headers=_OPENROUTER_HEADERS)
         self._model = model
 
     def complete(self, system: str, user: str) -> str:
