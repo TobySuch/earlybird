@@ -26,16 +26,16 @@ class OpenAITTSProvider:
         text: str,
         episode_id: int,
         audio_dir: Path,
+        *,
+        instructions: str = "",
     ) -> Path:
         audio_dir.mkdir(parents=True, exist_ok=True)
         output_path = audio_dir / f"episode_{episode_id}.mp3"
         logger.debug("OpenAITTSProvider.generate model=%s voice=%s", model_id, voice_id)
-        response = self._client.audio.speech.create(
-            model=model_id,
-            voice=voice_id,
-            input=text,
-            response_format="mp3",
-        )
+        kwargs: dict = dict(model=model_id, voice=voice_id, input=text, response_format="mp3")
+        if instructions.strip():
+            kwargs["instructions"] = instructions.strip()
+        response = self._client.audio.speech.create(**kwargs)
         with open(output_path, "wb") as f:
             for chunk in response.iter_bytes():
                 f.write(chunk)

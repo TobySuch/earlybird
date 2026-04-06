@@ -164,6 +164,14 @@
         <p class="text-xs text-gray-400 mt-1">Leave blank for the standard OpenAI API. Set to a custom endpoint for a self-hosted TTS server that implements the OpenAI <code class="font-mono">/v1/audio/speech</code> API.</p>
       </div>
 
+      <div x-show="provider === 'openai'" x-cloak :class="!enabled && 'opacity-50 pointer-events-none'">
+        <label class="block text-xs font-medium text-gray-600 mb-1.5" for="tts_instructions">Voice instructions <span class="font-normal text-gray-400">(optional)</span></label>
+        <textarea id="tts_instructions" name="tts_instructions" rows="3"
+          class="w-full text-sm border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          placeholder="Speak in a warm, engaging tone — like a knowledgeable friend reading the morning news.">{{ tts_instructions }}</textarea>
+        <p class="text-xs text-gray-400 mt-1">Natural language guidance for how the voice should sound. Supported by <code class="font-mono">gpt-4o-mini-tts</code> and compatible endpoints.</p>
+      </div>
+
     </div>
   </section>
 

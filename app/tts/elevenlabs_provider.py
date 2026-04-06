@@ -26,6 +26,8 @@ class ElevenLabsProvider:
         text: str,
         episode_id: int,
         audio_dir: Path,
+        *,
+        instructions: str = "",
     ) -> Path:
         audio_dir.mkdir(parents=True, exist_ok=True)
         output_path = audio_dir / f"episode_{episode_id}.mp3"

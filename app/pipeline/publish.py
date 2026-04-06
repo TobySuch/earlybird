@@ -7,6 +7,8 @@ from sqlalchemy.orm import Session
 from app.config import (
     TTS_ENABLED_DEFAULT,
     TTS_ENABLED_KEY,
+    TTS_INSTRUCTIONS_DEFAULT,
+    TTS_INSTRUCTIONS_KEY,
     TTS_MODEL_ID_DEFAULT,
     TTS_MODEL_ID_KEY,
     TTS_PROVIDER_DEFAULT,
@@ -61,9 +63,12 @@ def run(db: Session, episode: Episode) -> None:
         return
 
     model_id = get_db_config(db, TTS_MODEL_ID_KEY, TTS_MODEL_ID_DEFAULT)
+    instructions = get_db_config(db, TTS_INSTRUCTIONS_KEY, TTS_INSTRUCTIONS_DEFAULT)
 
     tts = get_tts_provider(db)
-    audio_path = tts.generate(voice_id, model_id, text, episode.id, AUDIO_DIR)
+    audio_path = tts.generate(
+        voice_id, model_id, text, episode.id, AUDIO_DIR, instructions=instructions
+    )
     episode.audio_path = str(audio_path)
     db.commit()
     logger.info("Audio saved to %s", audio_path)
