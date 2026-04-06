@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.3.0](https://github.com/TobySuch/earlybird/compare/earlybird-v0.2.0...earlybird-v0.3.0) (2026-04-06)
+
+
+### Features
+
+* **dashboard:** add Check inbox button to count unprocessed Gmail emails ([#11](https://github.com/TobySuch/earlybird/issues/11)) ([91d6f5a](https://github.com/TobySuch/earlybird/commit/91d6f5a2a9afb8dcb547bfd54ab034a661dd7074))
+* **llm:** add OpenAI-compatible API provider ([945888b](https://github.com/TobySuch/earlybird/commit/945888bff1b6f6d0a163cf8ff19d1bf19c5e6b50))
+* **llm:** add OpenRouter attribution headers to all LLM providers ([#10](https://github.com/TobySuch/earlybird/issues/10)) ([075a525](https://github.com/TobySuch/earlybird/commit/075a525c056dce27d433e3293b00c211b9ccc9a3))
+* **tts:** add pluggable TTS provider with OpenAI-compatible support ([3b26af4](https://github.com/TobySuch/earlybird/commit/3b26af4fa37c25cf1bb7ae3d71d7f8d537a2cdcf))
+
+
+### Bug Fixes
+
+* **pipeline:** defer Gmail processed label until full pipeline succeeds ([4e17710](https://github.com/TobySuch/earlybird/commit/4e17710bede19186b28ac43fea2346a8d1c7add1))
+
 ## [0.2.0](https://github.com/TobySuch/earlybird/compare/earlybird-v0.1.0...earlybird-v0.2.0) (2026-04-01)
 
 
