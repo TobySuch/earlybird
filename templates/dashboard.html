@@ -26,12 +26,63 @@
   {% include "partials/last_run.html" %}
 </div>
 
-<button
-  hx-post="/api/run/trigger"
-  hx-swap="none"
-  hx-on::after-request="if(event.detail.successful) window.location='/run-log'"
-  hx-disabled-elt="this"
-  class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 cursor-pointer">
-  Run now
-</button>
+<div x-data="{ count: null, loading: false, showModal: false, error: null }">
+
+  <div class="flex gap-3 items-center">
+    <button
+      hx-post="/api/run/trigger"
+      hx-swap="none"
+      hx-on::after-request="if(event.detail.successful) window.location='/run-log'"
+      hx-disabled-elt="this"
+      class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 cursor-pointer">
+      Run now
+    </button>
+
+    <button
+      @click="
+        loading = true; error = null;
+        fetch('/api/unprocessed-count')
+          .then(r => r.json())
+          .then(data => { loading = false; count = data.count; error = data.error || null; showModal = true; })
+          .catch(() => { loading = false; error = 'Network error — could not reach the server.'; showModal = true; });
+      "
+      :disabled="loading"
+      class="px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 cursor-pointer">
+      <span x-show="!loading">Check inbox</span>
+      <span x-show="loading">Checking…</span>
+    </button>
+  </div>
+
+  <!-- Modal backdrop -->
+  <div
+    x-show="showModal"
+    x-transition.opacity
+    class="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
+    @click.self="showModal = false">
+
+    <div class="bg-white rounded-lg shadow-xl p-6 max-w-sm w-full mx-4">
+      <template x-if="error">
+        <div>
+          <p class="text-base font-medium text-gray-900 mb-1">Could not check inbox</p>
+          <p class="text-sm text-gray-500" x-text="error"></p>
+        </div>
+      </template>
+      <template x-if="!error">
+        <div>
+          <p class="text-base font-medium text-gray-900 mb-1">Inbox check</p>
+          <p class="text-sm text-gray-700">
+            <span x-text="count"></span><span x-text="count === 1 ? ' unprocessed email' : ' unprocessed emails'"></span>
+            in your Newsletters inbox.
+          </p>
+        </div>
+      </template>
+      <button
+        @click="showModal = false"
+        class="mt-4 px-4 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 cursor-pointer w-full">
+        OK
+      </button>
+    </div>
+  </div>
+
+</div>
 {% endblock %}
