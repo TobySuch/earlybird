@@ -68,6 +68,18 @@ class GmailSource:
 
         return items
 
+    def count_unprocessed(self, since: datetime) -> int:
+        """Return the number of unprocessed messages without fetching bodies."""
+        service = self._get_service()
+        label_name: str = self._cfg["label"]
+        processed_label_name: str = self._cfg["processed_label"]
+        query = (
+            f"label:{label_name} -label:{processed_label_name} "
+            f"after:{since.strftime('%Y/%m/%d')}"
+        )
+        logger.info("Gmail count query: %s", query)
+        return len(self._list_messages(service, query))
+
     def mark_processed(self) -> None:
         """Apply the processed label to all messages fetched in the last fetch() call."""
         if not self._pending_msg_ids or not self._pending_label_id:
