@@ -36,6 +36,11 @@ GMAIL_LOOKBACK_DAYS_DEFAULT = "7"
 SCHEDULE_CRON_DEFAULT = "0 7 * * 1-5"
 SCHEDULE_ENABLED_DEFAULT = "true"
 
+FEED_ENABLED_KEY = "feed.enabled"
+FEED_TOKEN_KEY = "feed.token"
+FEED_ENABLED_DEFAULT = "false"
+FEED_TOKEN_DEFAULT = ""
+
 TTS_ENABLED_KEY = "tts.enabled"
 TTS_PROVIDER_KEY = "tts.provider"
 TTS_VOICE_ID_KEY = "tts.voice_id"
