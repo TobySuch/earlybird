@@ -74,8 +74,7 @@ class GmailSource:
         label_name: str = self._cfg["label"]
         processed_label_name: str = self._cfg["processed_label"]
         query = (
-            f"label:{label_name} -label:{processed_label_name} "
-            f"after:{since.strftime('%Y/%m/%d')}"
+            f"label:{label_name} -label:{processed_label_name} after:{since.strftime('%Y/%m/%d')}"
         )
         logger.info("Gmail count query: %s", query)
         return len(self._list_messages(service, query))
