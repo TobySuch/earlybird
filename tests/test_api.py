@@ -139,6 +139,85 @@ def test_unprocessed_count_handles_error(client):
     assert "Gmail not authenticated" in data["error"]
 
 
+# ── /api/feed/{token}/feed.xml ────────────────────────────────────────────────
+
+
+def _set_feed_config(db_session, enabled: bool, token: str = "secret-token-abc"):
+    from app.config import FEED_ENABLED_KEY, FEED_TOKEN_KEY, set_db_config
+
+    set_db_config(db_session, FEED_ENABLED_KEY, "true" if enabled else "false")
+    set_db_config(db_session, FEED_TOKEN_KEY, token)
+
+
+def test_feed_disabled_returns_503(client, db_session):
+    _set_feed_config(db_session, enabled=False)
+    response = client.get("/api/feed/secret-token-abc/feed.xml")
+    assert response.status_code == 503
+
+
+def test_feed_wrong_token_returns_404(client, db_session):
+    _set_feed_config(db_session, enabled=True, token="correct-token")
+    response = client.get("/api/feed/wrong-token/feed.xml")
+    assert response.status_code == 404
+
+
+def test_feed_no_audio_episodes_returns_empty_feed(client, db_session):
+    _set_feed_config(db_session, enabled=True)
+    response = client.get("/api/feed/secret-token-abc/feed.xml")
+    assert response.status_code == 200
+    assert "application/rss+xml" in response.headers["content-type"]
+    assert b"<channel>" in response.content
+    assert b"<item>" not in response.content
+
+
+def test_feed_returns_rss_with_episodes(client, db_session, tmp_path):
+    from app.models import Episode
+
+    audio_file = tmp_path / "ep1.mp3"
+    audio_file.write_bytes(b"\x00" * 1024)
+
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    run = Run(started_at=now, status="success")
+    db_session.add(run)
+    db_session.commit()
+    db_session.refresh(run)
+
+    episode = Episode(run_id=run.id, audio_path=str(audio_file), newsletter_text="Today's digest.")
+    db_session.add(episode)
+    db_session.commit()
+
+    _set_feed_config(db_session, enabled=True)
+    response = client.get("/api/feed/secret-token-abc/feed.xml")
+    assert response.status_code == 200
+    body = response.content.decode()
+    assert "<enclosure" in body
+    assert "audio/mpeg" in body
+    assert "Earlybird" in body
+
+
+def test_feed_audio_streams_file(client, db_session, tmp_path):
+    from app.models import Episode
+
+    audio_file = tmp_path / "ep.mp3"
+    audio_file.write_bytes(b"ID3" + b"\x00" * 100)
+
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    run = Run(started_at=now, status="success")
+    db_session.add(run)
+    db_session.commit()
+    db_session.refresh(run)
+
+    episode = Episode(run_id=run.id, audio_path=str(audio_file))
+    db_session.add(episode)
+    db_session.commit()
+    db_session.refresh(episode)
+
+    _set_feed_config(db_session, enabled=True)
+    response = client.get(f"/api/feed/secret-token-abc/audio/{episode.id}.mp3")
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "audio/mpeg"
+
+
 # ── execute_pipeline ──────────────────────────────────────────────────────────
 
 

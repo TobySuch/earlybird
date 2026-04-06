@@ -9,6 +9,10 @@ from sqlalchemy.orm import Session
 
 from app.auth import require_user
 from app.config import (
+    FEED_ENABLED_DEFAULT,
+    FEED_ENABLED_KEY,
+    FEED_TOKEN_DEFAULT,
+    FEED_TOKEN_KEY,
     GMAIL_LABEL_DEFAULT,
     GMAIL_LABEL_KEY,
     GMAIL_LOOKBACK_DAYS_DEFAULT,
@@ -124,6 +128,11 @@ async def settings(request: Request, db: Session = Depends(get_db), saved: bool 
 
     creds = get_credentials()
     gmail_connected = creds is not None and creds.valid
+
+    feed_token = get_db_config(db, FEED_TOKEN_KEY, FEED_TOKEN_DEFAULT)
+    base = str(request.base_url).rstrip("/")
+    feed_url = f"{base}/api/feed/{feed_token}/feed.xml" if feed_token else ""
+
     return templates.TemplateResponse(
         request,
         "settings.html",
@@ -152,6 +161,9 @@ async def settings(request: Request, db: Session = Depends(get_db), saved: bool 
                 db, TTS_OPENAI_BASE_URL_KEY, TTS_OPENAI_BASE_URL_DEFAULT
             ),
             "tts_instructions": get_db_config(db, TTS_INSTRUCTIONS_KEY, TTS_INSTRUCTIONS_DEFAULT),
+            "feed_enabled": get_db_config(db, FEED_ENABLED_KEY, FEED_ENABLED_DEFAULT) == "true",
+            "feed_token": feed_token,
+            "feed_url": feed_url,
         },
     )
 
@@ -175,7 +187,10 @@ async def settings_post(
     tts_model_id: str = Form(TTS_MODEL_ID_DEFAULT),
     tts_openai_base_url: str = Form(TTS_OPENAI_BASE_URL_DEFAULT),
     tts_instructions: str = Form(TTS_INSTRUCTIONS_DEFAULT),
+    feed_enabled: str | None = Form(None),
 ):
+    import secrets
+
     set_db_config(db, GMAIL_LABEL_KEY, gmail_label.strip())
     set_db_config(db, GMAIL_PROCESSED_LABEL_KEY, gmail_processed_label.strip())
     set_db_config(db, GMAIL_LOOKBACK_DAYS_KEY, gmail_lookback_days.strip())
@@ -196,6 +211,20 @@ async def settings_post(
     set_db_config(db, TTS_OPENAI_BASE_URL_KEY, tts_openai_base_url.strip())
     set_db_config(db, TTS_INSTRUCTIONS_KEY, tts_instructions.strip())
 
+    feed_on = feed_enabled is not None
+    set_db_config(db, FEED_ENABLED_KEY, "true" if feed_on else "false")
+    if feed_on and not get_db_config(db, FEED_TOKEN_KEY, FEED_TOKEN_DEFAULT):
+        set_db_config(db, FEED_TOKEN_KEY, secrets.token_urlsafe(32))
+
+    return RedirectResponse("/settings?saved=1", status_code=303)
+
+
+@router.post("/settings/feed/regenerate-token")
+async def regenerate_feed_token(db: Session = Depends(get_db)):
+    import secrets
+
+    set_db_config(db, FEED_TOKEN_KEY, secrets.token_urlsafe(32))
+    set_db_config(db, FEED_ENABLED_KEY, "true")
     return RedirectResponse("/settings?saved=1", status_code=303)
 
 

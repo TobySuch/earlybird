@@ -175,6 +175,54 @@
     </div>
   </section>
 
+  {# ── Podcast Feed ─────────────────────────────────────────────────────── #}
+  <section class="bg-white border border-gray-200 rounded-lg overflow-hidden"
+    x-data="{ enabled: {{ 'true' if feed_enabled else 'false' }}, copied: false }">
+    <div class="px-6 py-4 border-b border-gray-100">
+      <h2 class="text-sm font-semibold text-gray-900">Podcast Feed</h2>
+      <p class="text-xs text-gray-400 mt-0.5">Subscribe to episodes in your favourite podcast app.</p>
+    </div>
+    <div class="px-6 py-5 space-y-4">
+
+      <label class="flex items-center gap-2 cursor-pointer select-none text-sm text-gray-600">
+        <input type="checkbox" name="feed_enabled" value="1"
+          {% if feed_enabled %}checked{% endif %}
+          x-model="enabled"
+          class="text-blue-600 border-gray-300 rounded focus:ring-blue-500 cursor-pointer">
+        Enable RSS podcast feed
+      </label>
+
+      <div x-show="enabled" x-cloak class="space-y-3">
+        {% if feed_url %}
+        <div>
+          <label class="block text-xs font-medium text-gray-600 mb-1.5">Feed URL</label>
+          <div class="flex items-center gap-2">
+            <input type="text" readonly value="{{ feed_url }}"
+              class="flex-1 text-xs border border-gray-300 rounded px-3 py-2 font-mono bg-gray-50 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-text">
+            <button type="button"
+              @click="navigator.clipboard.writeText('{{ feed_url }}').then(() => { copied = true; setTimeout(() => copied = false, 2000) })"
+              class="shrink-0 px-3 py-2 text-xs font-medium border border-gray-300 rounded hover:bg-gray-50 cursor-pointer transition-colors"
+              x-text="copied ? 'Copied!' : 'Copy'">Copy</button>
+          </div>
+          <p class="text-xs text-gray-400 mt-1">Paste this URL into your favourite podcast app. Keep it private — anyone with this URL can access your feed.</p>
+        </div>
+        <div>
+          <form method="post" action="/settings/feed/regenerate-token">
+            <button type="submit"
+              class="text-xs text-red-600 hover:text-red-700 hover:underline cursor-pointer"
+              onclick="return confirm('Regenerate the feed URL? Your current subscription will stop working and you will need to re-subscribe with the new URL.')">
+              Regenerate URL
+            </button>
+          </form>
+        </div>
+        {% else %}
+        <p class="text-xs text-gray-500">Save settings to generate your feed URL.</p>
+        {% endif %}
+      </div>
+
+    </div>
+  </section>
+
   {# ── Schedule ─────────────────────────────────────────────────────────── #}
   <section class="bg-white border border-gray-200 rounded-lg overflow-hidden"
     x-data="{ enabled: {{ 'true' if schedule_enabled else 'false' }} }">
