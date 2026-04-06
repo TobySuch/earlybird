@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.5.0](https://github.com/TobySuch/earlybird/compare/v0.4.0...v0.5.0) (2026-04-06)
+
+
+### Features
+
+* **feed:** add RSS podcast feed ([#20](https://github.com/TobySuch/earlybird/issues/20)) ([b11079b](https://github.com/TobySuch/earlybird/commit/b11079b1979684912b241d782f9630dfe1088fd4))
+* **tts:** add voice instructions field for OpenAI-compat TTS ([#18](https://github.com/TobySuch/earlybird/issues/18)) ([46e00b5](https://github.com/TobySuch/earlybird/commit/46e00b5e39d2420f03de9c8fa884f41b916b9f85))
+
+
+### Documentation
+
+* **changelog:** fix inflated v0.4.0 entries and update compare links ([e2b85ea](https://github.com/TobySuch/earlybird/commit/e2b85ea168e425a024f7946efa67826000aac1ef))
+
 ## [0.4.0](https://github.com/TobySuch/earlybird/compare/v0.3.0...v0.4.0) (2026-04-06)
 
 
