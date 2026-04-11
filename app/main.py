@@ -24,10 +24,17 @@ def _check_env() -> None:
             s.secret_key == "changeme",
             "SECRET_KEY is set to the default 'changeme' — set a strong random value in .env",
         ),
-        (not s.anthropic_api_key, "ANTHROPIC_API_KEY is not set — LLM summarisation will fail"),
         (not s.gmail_client_id, "GMAIL_CLIENT_ID is not set — Gmail ingest will fail"),
         (not s.gmail_client_secret, "GMAIL_CLIENT_SECRET is not set — Gmail ingest will fail"),
     ]
+
+    if not s.anthropic_api_key and not s.openai_api_key:
+        checks.append(
+            (
+                True,
+                "No LLM API key set (ANTHROPIC_API_KEY or OPENAI_API_KEY) — LLM will fail",
+            )
+        )
 
     for failed, message in checks:
         if failed:
