@@ -44,9 +44,12 @@
     <a href="/episodes" class="hover:text-blue-600">Episodes</a>
     <a href="/run-log" class="hover:text-blue-600">Run Log</a>
     <a href="/settings" class="hover:text-blue-600">Settings</a>
-    <form method="post" action="/auth/logout" class="ml-auto">
-      <button type="submit" class="hover:text-blue-600 cursor-pointer">Logout</button>
-    </form>
+    <div class="ml-auto flex items-center gap-6">
+      <a href="/auth/change-password" class="hover:text-blue-600">Change password</a>
+      <form method="post" action="/auth/logout">
+        <button type="submit" class="hover:text-blue-600 cursor-pointer">Logout</button>
+      </form>
+    </div>
   </nav>
   {% endblock %}
   <main class="max-w-5xl mx-auto px-6 py-8">

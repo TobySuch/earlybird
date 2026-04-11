@@ -116,6 +116,51 @@ async def logout(request: Request):
     return RedirectResponse(url="/auth/login", status_code=302)
 
 
+@router.get("/change-password", name="change_password_page", response_class=HTMLResponse)
+async def change_password_page(
+    request: Request,
+    saved: bool = False,
+    error: str = "",
+    _: None = Depends(auth_utils.require_user),
+):
+    """Show the change password form."""
+    return templates.TemplateResponse(
+        request, "auth/change_password.html", {"saved": saved, "error": error}
+    )
+
+
+@router.post("/change-password", name="change_password_submit")
+async def change_password_submit(
+    request: Request,
+    current_password: str = Form(...),
+    new_password: str = Form(...),
+    confirm_password: str = Form(...),
+    db: Session = Depends(get_db),
+    _: None = Depends(auth_utils.require_user),
+):
+    """Validate and update the user's password."""
+    user_id = request.session.get("user_id")
+    user = db.get(User, user_id)
+
+    if not auth_utils.verify_password(current_password, user.password_hash):
+        return RedirectResponse(
+            "/auth/change-password?error=Incorrect+current+password", status_code=303
+        )
+    if new_password != confirm_password:
+        return RedirectResponse(
+            "/auth/change-password?error=Passwords+do+not+match", status_code=303
+        )
+    if len(new_password) < 8:
+        return RedirectResponse(
+            "/auth/change-password?error=Password+must+be+at+least+8+characters",
+            status_code=303,
+        )
+
+    user.password_hash = auth_utils.hash_password(new_password)
+    db.commit()
+    return RedirectResponse("/auth/change-password?saved=1", status_code=303)
+
+
 _STATE_SESSION_KEY = "gmail_oauth_state"
 _VERIFIER_SESSION_KEY = "gmail_oauth_verifier"
 
