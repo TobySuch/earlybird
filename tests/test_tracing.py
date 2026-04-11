@@ -1,0 +1,52 @@
+from unittest.mock import patch
+
+
+@patch("mlflow.openai.autolog")
+@patch("mlflow.anthropic.autolog")
+@patch("mlflow.set_experiment")
+@patch("mlflow.set_tracking_uri")
+def test_setup_tracing_configures_mlflow(mock_uri, mock_experiment, mock_anthropic, mock_openai):
+    from app.tracing import setup_tracing
+
+    setup_tracing("http://localhost:5000", "my-experiment")
+
+    mock_uri.assert_called_once_with("http://localhost:5000")
+    mock_experiment.assert_called_once_with("my-experiment")
+    mock_anthropic.assert_called_once()
+    mock_openai.assert_called_once()
+
+
+@patch("mlflow.openai.autolog")
+@patch("mlflow.anthropic.autolog")
+@patch("mlflow.set_experiment")
+@patch("mlflow.set_tracking_uri")
+def test_setup_tracing_skips_experiment_when_empty(
+    mock_uri, mock_experiment, mock_anthropic, mock_openai
+):
+    from app.tracing import setup_tracing
+
+    setup_tracing("http://localhost:5000", "")
+
+    mock_uri.assert_called_once_with("http://localhost:5000")
+    mock_experiment.assert_not_called()
+    mock_anthropic.assert_called_once()
+    mock_openai.assert_called_once()
+
+
+@patch("app.tracing.setup_tracing")
+def test_setup_tracing_not_called_when_uri_empty(mock_setup, monkeypatch):
+    """Tracing setup is skipped entirely when MLFLOW_TRACKING_URI is not configured."""
+    monkeypatch.setenv("MLFLOW_TRACKING_URI", "")
+    monkeypatch.setenv("MLFLOW_EXPERIMENT_NAME", "")
+
+    # Re-import settings with cleared cache so monkeypatched env is picked up
+
+    import app.config as config_module
+
+    config_module.get_settings.cache_clear()
+    settings = config_module.get_settings()
+
+    assert settings.mlflow_tracking_uri == ""
+    mock_setup.assert_not_called()
+
+    config_module.get_settings.cache_clear()

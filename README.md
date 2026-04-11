@@ -56,6 +56,8 @@ Key variables:
 | `OPENAI_API_KEY` | OpenAI API key for TTS (optional). |
 | `ABS_URL` | Base URL of your Audiobookshelf instance (optional). |
 | `ABS_API_KEY` | ABS API token (optional). |
+| `MLFLOW_TRACKING_URI` | MLflow tracking server URL — enables LLM call tracing when set (optional). |
+| `MLFLOW_EXPERIMENT_NAME` | MLflow experiment to log traces under (optional, defaults to `"Default"`). |
 
 ### 3. Gmail label
 
@@ -125,6 +127,23 @@ make lint    # auto-fix with ruff
 ```
 
 Tests use an in-memory SQLite database and mock the Gmail API — no live credentials needed.
+
+## MLflow tracing
+
+Earlybird can automatically send LLM call traces to an [MLflow](https://mlflow.org/) tracking server. All Anthropic and OpenAI API calls are captured — prompts, responses, latency, and model metadata — with no code changes required.
+
+To enable, set `MLFLOW_TRACKING_URI` in your `.env`:
+
+```bash
+MLFLOW_TRACKING_URI=http://localhost:5000
+MLFLOW_EXPERIMENT_NAME=earlybird   # optional, defaults to "Default"
+```
+
+Tracing is disabled when `MLFLOW_TRACKING_URI` is empty (the default). You can run a local MLflow server with:
+
+```bash
+uv run mlflow server --host 0.0.0.0 --port 5000
+```
 
 ## Database migrations
 

@@ -45,6 +45,11 @@ def _check_env() -> None:
 async def lifespan(app: FastAPI):
     init_db()
     _check_env()
+    settings = get_settings()
+    if settings.mlflow_tracking_uri:
+        from app.tracing import setup_tracing
+
+        setup_tracing(settings.mlflow_tracking_uri, settings.mlflow_experiment_name)
     start_scheduler()
 
     # Generate a one-time signup code if no users exist yet
