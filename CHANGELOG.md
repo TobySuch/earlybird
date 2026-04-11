@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.2](https://github.com/TobySuch/earlybird/compare/v0.6.1...v0.6.2) (2026-04-11)
+
+
+### Bug Fixes
+
+* **auth:** resolve Gmail OAuth redirect_uri mismatch behind reverse proxy ([#28](https://github.com/TobySuch/earlybird/issues/28)) ([39c99f5](https://github.com/TobySuch/earlybird/commit/39c99f5d97d7bdf063029650cb1468d1c00962a8))
+
 ## [0.6.1](https://github.com/TobySuch/earlybird/compare/v0.6.0...v0.6.1) (2026-04-11)
 
 
