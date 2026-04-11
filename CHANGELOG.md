@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.1](https://github.com/TobySuch/earlybird/compare/v0.5.0...v0.5.1) (2026-04-11)
+
+
+### Bug Fixes
+
+* **settings:** add margin under podcast feed section and fix nested form ([#23](https://github.com/TobySuch/earlybird/issues/23)) ([da4d8e2](https://github.com/TobySuch/earlybird/commit/da4d8e212d3cd27de6b7c567aa2f1b879d7d92e5))
+
 ## [0.5.0](https://github.com/TobySuch/earlybird/compare/v0.4.0...v0.5.0) (2026-04-06)
 
 
