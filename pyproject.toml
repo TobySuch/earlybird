@@ -1,6 +1,6 @@
 [project]
 name = "earlybird"
-version = "0.6.1"
+version = "0.6.2"
 description = "Personal newsletter aggregator and podcast generator"
 requires-python = ">=3.12"
 dependencies = [
