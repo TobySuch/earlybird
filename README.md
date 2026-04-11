@@ -1,5 +1,7 @@
 # earlybird
 
+<img src="static/earlybird.svg" alt="Earlybird logo" width="80" height="80">
+
 Personal newsletter aggregator and podcast generator. Fetches newsletters from Gmail, summarises stories with Claude Haiku, produces a daily digest, and optionally generates a TTS podcast episode.
 
 ## Setup
