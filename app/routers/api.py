@@ -94,7 +94,7 @@ def _validate_feed_token(token: str, db: Session) -> tuple[bool, bool]:
     return enabled, bool(stored) and stored == token
 
 
-@router.get("/feed/{token}/feed.xml")
+@router.get("/feed/{token}")
 async def podcast_feed(token: str, request: Request, db: Session = Depends(get_db)):
     """Serve RSS 2.0 podcast feed at a hard-to-guess URL."""
     enabled, valid = _validate_feed_token(token, db)
@@ -119,7 +119,7 @@ async def podcast_feed(token: str, request: Request, db: Session = Depends(get_d
 
     itunes_ns = "http://www.itunes.com/dtds/podcast-1.0.dtd"
     atom_ns = "http://www.w3.org/2005/Atom"
-    feed_url = f"{base}/api/feed/{token}/feed.xml"
+    feed_url = f"{base}/api/feed/{token}"
 
     # register_namespace alone adds xmlns declarations; don't also pass them as
     # explicit attributes or they appear twice (invalid XML).

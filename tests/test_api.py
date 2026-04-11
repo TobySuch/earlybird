@@ -139,7 +139,7 @@ def test_unprocessed_count_handles_error(client):
     assert "Gmail not authenticated" in data["error"]
 
 
-# ── /api/feed/{token}/feed.xml ────────────────────────────────────────────────
+# ── /api/feed/{token} ────────────────────────────────────────────────
 
 
 def _set_feed_config(db_session, enabled: bool, token: str = "secret-token-abc"):
@@ -151,19 +151,19 @@ def _set_feed_config(db_session, enabled: bool, token: str = "secret-token-abc")
 
 def test_feed_disabled_returns_503(client, db_session):
     _set_feed_config(db_session, enabled=False)
-    response = client.get("/api/feed/secret-token-abc/feed.xml")
+    response = client.get("/api/feed/secret-token-abc")
     assert response.status_code == 503
 
 
 def test_feed_wrong_token_returns_404(client, db_session):
     _set_feed_config(db_session, enabled=True, token="correct-token")
-    response = client.get("/api/feed/wrong-token/feed.xml")
+    response = client.get("/api/feed/wrong-token")
     assert response.status_code == 404
 
 
 def test_feed_no_audio_episodes_returns_empty_feed(client, db_session):
     _set_feed_config(db_session, enabled=True)
-    response = client.get("/api/feed/secret-token-abc/feed.xml")
+    response = client.get("/api/feed/secret-token-abc")
     assert response.status_code == 200
     assert "application/rss+xml" in response.headers["content-type"]
     assert b"<channel>" in response.content
@@ -187,7 +187,7 @@ def test_feed_returns_rss_with_episodes(client, db_session, tmp_path):
     db_session.commit()
 
     _set_feed_config(db_session, enabled=True)
-    response = client.get("/api/feed/secret-token-abc/feed.xml")
+    response = client.get("/api/feed/secret-token-abc")
     assert response.status_code == 200
     body = response.content.decode()
     assert "<enclosure" in body

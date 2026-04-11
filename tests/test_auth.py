@@ -314,6 +314,6 @@ def test_unauthenticated_api_status_returns_401(client, existing_user):
 
 def test_feed_route_is_public(client):
     # Feed route is intentionally unauthenticated (token-based)
-    resp = client.get("/api/feed/sometoken/feed.xml")
+    resp = client.get("/api/feed/sometoken")
     # It returns a JSON error (not implemented), but not a 401 or 302
     assert resp.status_code not in (401, 302)
