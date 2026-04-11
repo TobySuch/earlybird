@@ -5,7 +5,7 @@ WORKDIR /build
 COPY package.json bun.lock ./
 RUN bun install --frozen-lockfile
 
-COPY static/src/ static/src/
+COPY static/ static/
 COPY templates/ templates/
 
 RUN bun run build
