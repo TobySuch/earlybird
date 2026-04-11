@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.3](https://github.com/TobySuch/earlybird/compare/v0.6.2...v0.6.3) (2026-04-11)
+
+
+### Bug Fixes
+
+* **feed:** fix RSS feed compatibility with Apple Podcasts ([#30](https://github.com/TobySuch/earlybird/issues/30)) ([7dc1938](https://github.com/TobySuch/earlybird/commit/7dc19386f9d978d3bd7e1b1137adbf3e8461422d))
+
 ## [0.6.2](https://github.com/TobySuch/earlybird/compare/v0.6.1...v0.6.2) (2026-04-11)
 
 
