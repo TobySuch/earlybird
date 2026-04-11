@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.0](https://github.com/TobySuch/earlybird/compare/v0.5.1...v0.6.0) (2026-04-11)
+
+
+### Features
+
+* **branding:** add logo, favicon set, and nav branding ([#25](https://github.com/TobySuch/earlybird/issues/25)) ([5d40bb2](https://github.com/TobySuch/earlybird/commit/5d40bb2b9769346ea3c1614b687d86531574f588))
+
 ## [0.5.1](https://github.com/TobySuch/earlybird/compare/v0.5.0...v0.5.1) (2026-04-11)
 
 
