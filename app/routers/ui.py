@@ -2,7 +2,7 @@
 
 import markdown as md
 from fastapi import APIRouter, Depends, Form, Request
-from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
+from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse, Response
 from fastapi.templating import Jinja2Templates
 from markupsafe import Markup
 from sqlalchemy.orm import Session
@@ -220,11 +220,13 @@ async def settings_post(
 
 
 @router.post("/settings/feed/regenerate-token")
-async def regenerate_feed_token(db: Session = Depends(get_db)):
+async def regenerate_feed_token(request: Request, db: Session = Depends(get_db)):
     import secrets
 
     set_db_config(db, FEED_TOKEN_KEY, secrets.token_urlsafe(32))
     set_db_config(db, FEED_ENABLED_KEY, "true")
+    if request.headers.get("HX-Request"):
+        return Response(headers={"HX-Redirect": "/settings?saved=1"})
     return RedirectResponse("/settings?saved=1", status_code=303)
 
 
