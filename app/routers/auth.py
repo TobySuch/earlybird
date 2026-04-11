@@ -121,8 +121,18 @@ _VERIFIER_SESSION_KEY = "gmail_oauth_verifier"
 
 
 def _callback_uri(request: Request) -> str:
-    """Build the absolute callback URL from the incoming request."""
-    return str(request.url_for("gmail_callback"))
+    """Build the absolute callback URL from the incoming request.
+
+    If PUBLIC_BASE_URL is set in settings, use it to override the scheme/host
+    so the URI is correct when running behind a reverse proxy.
+    """
+    from app.config import get_settings
+
+    path = request.url_for("gmail_callback")
+    base = get_settings().public_base_url.rstrip("/")
+    if base:
+        return f"{base}/auth/gmail/callback"
+    return str(path)
 
 
 @router.get("/gmail", name="gmail_auth")

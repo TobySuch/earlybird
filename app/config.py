@@ -14,6 +14,8 @@ class Settings(BaseSettings):
     elevenlabs_api_key: str = ""
     gmail_client_id: str = ""
     gmail_client_secret: str = ""
+    # Set to e.g. https://earlybird.example.com to fix redirect URIs behind a reverse proxy
+    public_base_url: str = ""
 
     model_config = {"env_file": ".env", "extra": "ignore"}
 
