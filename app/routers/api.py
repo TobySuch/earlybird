@@ -16,6 +16,7 @@ from app.config import (
     FEED_TOKEN_DEFAULT,
     FEED_TOKEN_KEY,
     get_db_config,
+    get_settings,
 )
 from app.database import get_db
 from app.models import Episode, Run
@@ -93,7 +94,7 @@ def _validate_feed_token(token: str, db: Session) -> tuple[bool, bool]:
     return enabled, bool(stored) and stored == token
 
 
-@router.get("/feed/{token}/feed.xml")
+@router.get("/feed/{token}")
 async def podcast_feed(token: str, request: Request, db: Session = Depends(get_db)):
     """Serve RSS 2.0 podcast feed at a hard-to-guess URL."""
     enabled, valid = _validate_feed_token(token, db)
@@ -111,19 +112,43 @@ async def podcast_feed(token: str, request: Request, db: Session = Depends(get_d
         .all()
     )
 
-    base = str(request.base_url).rstrip("/")
+    # Use PUBLIC_BASE_URL when set (needed behind a reverse proxy like Traefik);
+    # fall back to the request base_url for local dev.
+    _pub = get_settings().public_base_url
+    base = _pub.rstrip("/") if _pub else str(request.base_url).rstrip("/")
 
-    # Build RSS XML with iTunes namespace
-    ET.register_namespace("itunes", "http://www.itunes.com/dtds/podcast-1.0.dtd")
-    rss = ET.Element(
-        "rss", {"version": "2.0", "xmlns:itunes": "http://www.itunes.com/dtds/podcast-1.0.dtd"}
-    )
+    itunes_ns = "http://www.itunes.com/dtds/podcast-1.0.dtd"
+    atom_ns = "http://www.w3.org/2005/Atom"
+    feed_url = f"{base}/api/feed/{token}"
+
+    # register_namespace alone adds xmlns declarations; don't also pass them as
+    # explicit attributes or they appear twice (invalid XML).
+    ET.register_namespace("itunes", itunes_ns)
+    ET.register_namespace("atom", atom_ns)
+    rss = ET.Element("rss", {"version": "2.0"})
     channel = ET.SubElement(rss, "channel")
+
+    # Required channel fields
     ET.SubElement(channel, "title").text = "Earlybird"
     ET.SubElement(channel, "link").text = base
     ET.SubElement(channel, "description").text = "Your personalised newsletter digest, read aloud."
     ET.SubElement(channel, "language").text = "en"
-    ET.SubElement(channel, "{http://www.itunes.com/dtds/podcast-1.0.dtd}explicit").text = "no"
+
+    # atom:link self-reference (best practice; some validators require it)
+    ET.SubElement(
+        channel,
+        f"{{{atom_ns}}}link",
+        href=feed_url,
+        rel="self",
+        type="application/rss+xml",
+    )
+
+    # iTunes channel metadata required by Apple Podcasts
+    ET.SubElement(channel, f"{{{itunes_ns}}}author").text = "Earlybird"
+    ET.SubElement(channel, f"{{{itunes_ns}}}explicit").text = "no"
+    ET.SubElement(channel, f"{{{itunes_ns}}}type").text = "episodic"
+    cover_url = f"{base}/static/web-app-manifest-512x512.png"
+    ET.SubElement(channel, f"{{{itunes_ns}}}image", href=cover_url)
 
     for episode in episodes:
         pub_dt = episode.run.started_at
@@ -143,9 +168,9 @@ async def podcast_feed(token: str, request: Request, db: Session = Depends(get_d
         ET.SubElement(item, "guid", isPermaLink="false").text = f"earlybird-episode-{episode.id}"
         ET.SubElement(item, "pubDate").text = format_datetime(pub_dt)
         ET.SubElement(item, "enclosure", url=audio_url, length=str(length), type="audio/mpeg")
+        ET.SubElement(item, f"{{{itunes_ns}}}explicit").text = "no"
         if episode.newsletter_text:
             summary = episode.newsletter_text.strip()[:500]
-            itunes_ns = "http://www.itunes.com/dtds/podcast-1.0.dtd"
             ET.SubElement(item, f"{{{itunes_ns}}}summary").text = summary
 
     xml_bytes = (

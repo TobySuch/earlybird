@@ -131,7 +131,7 @@ async def settings(request: Request, db: Session = Depends(get_db), saved: bool 
 
     feed_token = get_db_config(db, FEED_TOKEN_KEY, FEED_TOKEN_DEFAULT)
     base = str(request.base_url).rstrip("/")
-    feed_url = f"{base}/api/feed/{feed_token}/feed.xml" if feed_token else ""
+    feed_url = f"{base}/api/feed/{feed_token}" if feed_token else ""
 
     return templates.TemplateResponse(
         request,
