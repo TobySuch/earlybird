@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.7.0](https://github.com/TobySuch/earlybird/compare/v0.6.3...v0.7.0) (2026-04-11)
+
+
+### Features
+
+* **auth:** add change password page ([#35](https://github.com/TobySuch/earlybird/issues/35)) ([0f2248b](https://github.com/TobySuch/earlybird/commit/0f2248bf65d324949a82bf6180a31656f73790c7))
+* **tracing:** add optional MLflow tracing for LLM calls ([#36](https://github.com/TobySuch/earlybird/issues/36)) ([0cfeff4](https://github.com/TobySuch/earlybird/commit/0cfeff46e3cf75df0a01d794efa619b6115474fc))
+
+
+### Bug Fixes
+
+* **docker:** invoke venv binary directly to avoid uv run syncing dev deps on startup ([#32](https://github.com/TobySuch/earlybird/issues/32)) ([f22824a](https://github.com/TobySuch/earlybird/commit/f22824aaf65799f4c1470457e37e3b9546b367e9))
+* **startup:** warn only when no LLM API key is set ([#34](https://github.com/TobySuch/earlybird/issues/34)) ([6c32686](https://github.com/TobySuch/earlybird/commit/6c32686926879c05403b90f504f3beb07d3c9be9))
+
 ## [0.6.3](https://github.com/TobySuch/earlybird/compare/v0.6.2...v0.6.3) (2026-04-11)
 
 
