@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.1](https://github.com/TobySuch/earlybird/compare/v0.6.0...v0.6.1) (2026-04-11)
+
+
+### Bug Fixes
+
+* **docker:** copy full static/ dir in frontend stage to include favicon assets ([db67e21](https://github.com/TobySuch/earlybird/commit/db67e218141268488e68759b99a38e45ccdea3e7))
+
 ## [0.6.0](https://github.com/TobySuch/earlybird/compare/v0.5.1...v0.6.0) (2026-04-11)
 
 
