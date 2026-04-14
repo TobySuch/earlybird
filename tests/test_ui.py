@@ -85,3 +85,41 @@ def test_audio_serves_file(client, db_session, episode, tmp_path):
     assert response.status_code == 200
     assert response.headers["content-type"] == "audio/mpeg"
     assert response.content == b"FAKEMP3"
+
+
+# ── DELETE /episodes/{id} ─────────────────────────────────────────────────────
+
+
+def test_delete_episode_no_audio(client, db_session, episode):
+    episode_id = episode.id
+    response = client.delete(f"/episodes/{episode_id}")
+    assert response.status_code == 204
+    assert db_session.get(Episode, episode_id) is None
+
+
+def test_delete_episode_with_audio(client, db_session, episode, tmp_path):
+    audio_file = tmp_path / "episode_1.mp3"
+    audio_file.write_bytes(b"FAKEMP3")
+    episode.audio_path = str(audio_file)
+    db_session.commit()
+
+    episode_id = episode.id
+    response = client.delete(f"/episodes/{episode_id}")
+    assert response.status_code == 204
+    assert not audio_file.exists()
+    assert db_session.get(Episode, episode_id) is None
+
+
+def test_delete_episode_missing_audio_file(client, db_session, episode):
+    episode.audio_path = "/nonexistent/path/episode_99.mp3"
+    db_session.commit()
+
+    episode_id = episode.id
+    response = client.delete(f"/episodes/{episode_id}")
+    assert response.status_code == 204
+    assert db_session.get(Episode, episode_id) is None
+
+
+def test_delete_episode_404(client):
+    response = client.delete("/episodes/9999")
+    assert response.status_code == 404
