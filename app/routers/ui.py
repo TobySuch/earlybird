@@ -128,6 +128,27 @@ async def episode_detail(episode_id: int, request: Request, db: Session = Depend
     return templates.TemplateResponse(request, "episode_detail.html", {"episode": episode})
 
 
+@router.delete("/episodes/{episode_id}")
+async def episode_delete(episode_id: int, db: Session = Depends(get_db)):
+    from pathlib import Path
+
+    from fastapi import HTTPException
+
+    episode = db.get(Episode, episode_id)
+    if episode is None:
+        raise HTTPException(status_code=404, detail="Episode not found")
+
+    if episode.audio_path:
+        try:
+            Path(episode.audio_path).unlink(missing_ok=True)
+        except OSError:
+            pass  # best-effort cleanup
+
+    db.delete(episode)
+    db.commit()
+    return Response(status_code=204)
+
+
 @router.get("/settings", response_class=HTMLResponse)
 async def settings(request: Request, db: Session = Depends(get_db), saved: bool = False):
     from app.gmail_auth import get_credentials
