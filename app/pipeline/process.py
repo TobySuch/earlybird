@@ -12,7 +12,7 @@ from app.models import Episode, NewsSource, Run
 
 logger = logging.getLogger(__name__)
 
-current_date = datetime.now().strftime("%B %d, %Y")
+current_date = datetime.datetime.now().strftime("%B %d, %Y")
 
 SYSTEM_PROMPT = """\
 You are an expert newsletter editor. Your job is to read a batch of newsletter \
