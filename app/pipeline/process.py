@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import datetime
 import logging
 
 from sqlalchemy.orm import Session
@@ -11,6 +12,8 @@ from app.models import Episode, NewsSource, Run
 
 logger = logging.getLogger(__name__)
 
+current_date = datetime.now().strftime("%B %d, %Y")
+
 SYSTEM_PROMPT = """\
 You are an expert newsletter editor. Your job is to read a batch of newsletter \
 content and produce a concise, well-structured daily digest for the reader.
@@ -19,6 +22,8 @@ For each source, extract the key insight or story in 2-4 sentences. \
 Group related topics together. Use clear section headings. \
 Write in plain English - no bullet-point spam, no filler phrases like \
 "In today's edition". Aim for a digest the reader can finish in under 5 minutes.
+
+Today's date is {current_date}. Ignore the dates given in the source content - they may be old.
 
 The reader's personal preferences follow after these instructions. \
 Tailor the selection and emphasis accordingly.\
