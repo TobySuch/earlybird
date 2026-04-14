@@ -7,7 +7,7 @@
         {
           "path": "uv.lock",
           "type": "toml",
-          "jsonpath": "$.package[?(@.name.value=='earlybird')].version"
+          "jsonpath": "$.package[?(@.name=='earlybird')].version"
         }
       ]
     }
