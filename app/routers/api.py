@@ -94,6 +94,18 @@ def _validate_feed_token(token: str, db: Session) -> tuple[bool, bool]:
     return enabled, bool(stored) and stored == token
 
 
+@router.get("/scheduler/status", dependencies=[Depends(require_user_api)])
+async def scheduler_status():
+    """Return the live state of the APScheduler pipeline job."""
+    from app.scheduler import get_scheduler_status
+
+    status = get_scheduler_status()
+    return {
+        **status,
+        "next_run_time": status["next_run_time"].isoformat() if status["next_run_time"] else None,
+    }
+
+
 @router.get("/feed/{token}")
 async def podcast_feed(token: str, request: Request, db: Session = Depends(get_db)):
     """Serve RSS 2.0 podcast feed at a hard-to-guess URL."""

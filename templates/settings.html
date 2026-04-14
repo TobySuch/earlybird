@@ -248,6 +248,17 @@
       <p class="text-xs text-gray-400 mt-1.5">
         Default <code class="font-mono">0 7 * * 1-5</code> runs at 7 am on weekdays.
       </p>
+      {% if scheduler_status is defined %}
+      <p class="text-xs mt-1.5">
+        {%- if not scheduler_status.running %}
+          <span class="text-amber-500">&#9888; Scheduler not running — restart the application.</span>
+        {%- elif scheduler_status.paused %}
+          <span class="text-gray-400">Schedule is currently paused.</span>
+        {%- elif scheduler_status.next_run_time %}
+          <span class="text-green-600">&#10003; Next run: {{ scheduler_status.next_run_time.strftime("%-d %b at %H:%M UTC") }}</span>
+        {%- endif %}
+      </p>
+      {% endif %}
     </div>
   </section>
 

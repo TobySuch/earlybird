@@ -218,6 +218,52 @@ def test_feed_audio_streams_file(client, db_session, tmp_path):
     assert response.headers["content-type"] == "audio/mpeg"
 
 
+# ── /api/scheduler/status ────────────────────────────────────────────────────
+
+
+def test_scheduler_status_running_with_next_run(client):
+    from datetime import datetime, timezone
+
+    next_fire = datetime(2026, 4, 14, 7, 0, 0, tzinfo=timezone.utc)
+
+    with patch(
+        "app.scheduler.get_scheduler_status",
+        return_value={"running": True, "paused": False, "next_run_time": next_fire},
+    ):
+        response = client.get("/api/scheduler/status")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["running"] is True
+    assert data["paused"] is False
+    assert data["next_run_time"] == "2026-04-14T07:00:00+00:00"
+
+
+def test_scheduler_status_paused(client):
+    with patch(
+        "app.scheduler.get_scheduler_status",
+        return_value={"running": True, "paused": True, "next_run_time": None},
+    ):
+        response = client.get("/api/scheduler/status")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["paused"] is True
+    assert data["next_run_time"] is None
+
+
+def test_scheduler_status_not_running(client):
+    with patch(
+        "app.scheduler.get_scheduler_status",
+        return_value={"running": False, "paused": True, "next_run_time": None},
+    ):
+        response = client.get("/api/scheduler/status")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["running"] is False
+
+
 # ── execute_pipeline ──────────────────────────────────────────────────────────
 
 

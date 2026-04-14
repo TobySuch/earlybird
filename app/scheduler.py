@@ -115,5 +115,25 @@ def start_scheduler() -> None:
     scheduler.start()
 
 
+def get_scheduler_status() -> dict:
+    """Return the live state of the pipeline scheduler job.
+
+    Returns a dict with:
+      running       – whether the scheduler process is alive
+      paused        – True if the job exists but has no next fire time
+      next_run_time – aware datetime of the next scheduled fire, or None
+    """
+    if not scheduler.running:
+        return {"running": False, "paused": True, "next_run_time": None}
+    job = scheduler.get_job("pipeline")
+    if job is None:
+        return {"running": True, "paused": True, "next_run_time": None}
+    return {
+        "running": True,
+        "paused": job.next_run_time is None,
+        "next_run_time": job.next_run_time,  # timezone-aware datetime or None
+    }
+
+
 def stop_scheduler() -> None:
     scheduler.shutdown(wait=False)

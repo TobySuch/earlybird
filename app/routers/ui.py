@@ -49,6 +49,7 @@ from app.llm.factory import (
     LLM_PROVIDER_KEY,
 )
 from app.models import Episode, Run
+from app.scheduler import get_scheduler_status
 
 router = APIRouter(dependencies=[Depends(require_user)])
 templates = Jinja2Templates(directory="templates")
@@ -87,7 +88,12 @@ async def dashboard(request: Request, db: Session = Depends(get_db)):
     return templates.TemplateResponse(
         request,
         "dashboard.html",
-        {"last_run": last_run, "episode_count": episode_count, "latest_episode": latest_episode},
+        {
+            "last_run": last_run,
+            "episode_count": episode_count,
+            "latest_episode": latest_episode,
+            "scheduler_status": get_scheduler_status(),
+        },
     )
 
 
@@ -164,6 +170,7 @@ async def settings(request: Request, db: Session = Depends(get_db), saved: bool 
             "feed_enabled": get_db_config(db, FEED_ENABLED_KEY, FEED_ENABLED_DEFAULT) == "true",
             "feed_token": feed_token,
             "feed_url": feed_url,
+            "scheduler_status": get_scheduler_status(),
         },
     )
 
@@ -258,7 +265,11 @@ async def run_log(request: Request, db: Session = Depends(get_db)):
 @router.get("/partials/last-run", response_class=HTMLResponse)
 async def last_run_partial(request: Request, db: Session = Depends(get_db)):
     last_run = db.query(Run).order_by(Run.started_at.desc()).first()
-    response = templates.TemplateResponse(request, "partials/last_run.html", {"last_run": last_run})
+    response = templates.TemplateResponse(
+        request,
+        "partials/last_run.html",
+        {"last_run": last_run, "scheduler_status": get_scheduler_status()},
+    )
     if last_run and last_run.status == "running":
         response.headers["HX-Reswap"] = "none"
     return response

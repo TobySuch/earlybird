@@ -16,4 +16,15 @@
   {% else %}
   <p class="text-sm text-gray-400 mt-1">No runs yet</p>
   {% endif %}
+  {% if scheduler_status is defined %}
+  <p class="text-xs text-gray-400 mt-2">
+    {%- if not scheduler_status.running %}
+      <span class="text-amber-500">Scheduler not running</span>
+    {%- elif scheduler_status.paused %}
+      Schedule paused
+    {%- elif scheduler_status.next_run_time %}
+      Next run: {{ scheduler_status.next_run_time.strftime("%-d %b at %H:%M UTC") }}
+    {%- endif %}
+  </p>
+  {% endif %}
 </div>
