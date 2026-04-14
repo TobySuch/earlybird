@@ -1,7 +1,7 @@
 import logging
 from datetime import datetime, timezone
 
-from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 
 from app.config import (
@@ -22,7 +22,12 @@ from app.models import Episode, Run
 from app.pipeline import ingest, process, publish
 from app.pipeline.sources.gmail import GmailSource
 
-scheduler = BackgroundScheduler()
+# AsyncIOScheduler runs inside uvicorn's event loop rather than a separate
+# daemon thread. This means it lives and dies with the event loop — there is
+# no background thread that can silently crash and stop jobs from firing.
+# Sync callables (like run_pipeline) are automatically dispatched to the
+# default thread-pool executor so they never block the event loop.
+scheduler = AsyncIOScheduler()
 
 
 class _ListHandler(logging.Handler):
