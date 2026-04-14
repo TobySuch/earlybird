@@ -7,6 +7,10 @@ services:
     volumes:
       # SQLite database, Gmail OAuth token, and audio files — persisted outside the container
       - ./data:/app/data
+      # Mount the host timezone so the container uses the same local time as the host.
+      # Without this the container defaults to UTC, which causes APScheduler's CronTrigger
+      # to interpret cron expressions (e.g. "0 7 * * 1-5") in UTC rather than local time.
+      - /etc/localtime:/etc/localtime:ro
     environment:
       - DATABASE_URL=sqlite:////app/data/earlybird.db
     env_file:
