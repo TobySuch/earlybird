@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.8.0](https://github.com/TobySuch/earlybird/compare/v0.7.0...v0.8.0) (2026-04-14)
+
+
+### Features
+
+* **episodes:** add delete episode with confirmation modal ([#43](https://github.com/TobySuch/earlybird/issues/43)) ([482ab70](https://github.com/TobySuch/earlybird/commit/482ab7078bab2d586e33048baca28e69755b8962))
+* **llm:** insert current date into the system prompt ([3661e4f](https://github.com/TobySuch/earlybird/commit/3661e4f02602cf856468b1e9a30067a613a2efd2))
+* **scheduler:** add scheduler status endpoint and surface next-run in UI ([72e34eb](https://github.com/TobySuch/earlybird/commit/72e34eb717d494f1ee6f85dacb40ab2b0cf9c5b2))
+* **tracing:** add pipeline spans for email fetch and audio generation ([80d5077](https://github.com/TobySuch/earlybird/commit/80d5077fe5c1500e2409205c47753cc8d9b483dd))
+
+
+### Bug Fixes
+
+* **release:** correct jsonpath filter for uv.lock version update ([636ff5e](https://github.com/TobySuch/earlybird/commit/636ff5ea2bb3e9037a30aa23fe59cd56911dd08c))
+* **scheduler:** switch BackgroundScheduler to AsyncIOScheduler ([17ee38d](https://github.com/TobySuch/earlybird/commit/17ee38d4d6e4f967c7e885ec13418ca5140abcd9))
+
 ## [0.7.0](https://github.com/TobySuch/earlybird/compare/v0.6.3...v0.7.0) (2026-04-11)
 
 
