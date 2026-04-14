@@ -1,4 +1,5 @@
-from unittest.mock import patch
+from contextlib import nullcontext
+from unittest.mock import MagicMock, patch
 
 
 @patch("mlflow.openai.autolog")
@@ -50,3 +51,27 @@ def test_setup_tracing_not_called_when_uri_empty(mock_setup, monkeypatch):
     mock_setup.assert_not_called()
 
     config_module.get_settings.cache_clear()
+
+
+def test_span_returns_nullcontext_when_tracing_disabled():
+    import app.tracing as tracing_module
+
+    tracing_module._tracing_enabled = False
+    ctx = tracing_module.span("test_span")
+    assert isinstance(ctx, type(nullcontext()))
+
+
+@patch("mlflow.start_span")
+def test_span_returns_mlflow_span_when_tracing_enabled(mock_start_span):
+    import app.tracing as tracing_module
+
+    tracing_module._tracing_enabled = True
+    mock_span = MagicMock()
+    mock_start_span.return_value = mock_span
+
+    ctx = tracing_module.span("test_span", attributes={"key": "value"})
+
+    mock_start_span.assert_called_once_with("test_span", attributes={"key": "value"})
+    assert ctx is mock_span
+
+    tracing_module._tracing_enabled = False  # restore

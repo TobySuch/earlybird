@@ -4,6 +4,7 @@ import logging
 
 from sqlalchemy.orm import Session
 
+from app import tracing as app_tracing
 from app.config import (
     TTS_ENABLED_DEFAULT,
     TTS_ENABLED_KEY,
@@ -66,9 +67,18 @@ def run(db: Session, episode: Episode) -> None:
     instructions = get_db_config(db, TTS_INSTRUCTIONS_KEY, TTS_INSTRUCTIONS_DEFAULT)
 
     tts = get_tts_provider(db)
-    audio_path = tts.generate(
-        voice_id, model_id, text, episode.id, AUDIO_DIR, instructions=instructions
-    )
+    with app_tracing.span(
+        "audio_generation",
+        attributes={
+            "provider": provider_name,
+            "voice_id": voice_id,
+            "model_id": model_id,
+            "text_length": len(text),
+        },
+    ):
+        audio_path = tts.generate(
+            voice_id, model_id, text, episode.id, AUDIO_DIR, instructions=instructions
+        )
     episode.audio_path = str(audio_path)
     db.commit()
     logger.info("Audio saved to %s", audio_path)

@@ -7,6 +7,7 @@ import logging
 
 from sqlalchemy.orm import Session
 
+from app import tracing as app_tracing
 from app.llm.factory import get_llm_provider, get_llm_user_prompt
 from app.models import Episode, NewsSource, Run
 
@@ -76,7 +77,8 @@ def run(db: Session, current_run: Run) -> None:
     user_message = _build_user_message(sources, user_prompt)
     logger.debug("User message length: %d chars", len(user_message))
 
-    newsletter_text = provider.complete(system=SYSTEM_PROMPT, user=user_message)
+    with app_tracing.span("process", attributes={"sources_count": len(sources)}):
+        newsletter_text = provider.complete(system=SYSTEM_PROMPT, user=user_message)
 
     episode = Episode(
         run_id=current_run.id,

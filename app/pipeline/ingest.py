@@ -7,6 +7,7 @@ from datetime import datetime, timedelta, timezone
 
 from sqlalchemy.orm import Session
 
+from app import tracing as app_tracing
 from app.config import (
     GMAIL_LOOKBACK_DAYS_DEFAULT,
     GMAIL_LOOKBACK_DAYS_KEY,
@@ -28,15 +29,21 @@ def run(db: Session, current_run: Run, sources: list[NewsletterSource]) -> None:
     since = datetime.now(timezone.utc) - timedelta(days=lookback_days)
 
     count = 0
-    for source in sources:
-        items = source.fetch(since)
-        logger.info("Source %r returned %d item(s)", source, len(items))
-        for item in items:
-            if not item.raw_content:
-                logger.info("Skipping %r — empty content", item.title)
-                continue
-            _upsert(db, _item_to_news_source(item, current_run.id), current_run.id)
-            count += 1
+    with app_tracing.span("ingest", attributes={"lookback_days": lookback_days}):
+        for source in sources:
+            source_name = type(source).__name__
+            with app_tracing.span(
+                "fetch_emails",
+                attributes={"source": source_name, "since": since.isoformat()},
+            ):
+                items = source.fetch(since)
+            logger.info("Source %r returned %d item(s)", source, len(items))
+            for item in items:
+                if not item.raw_content:
+                    logger.info("Skipping %r — empty content", item.title)
+                    continue
+                _upsert(db, _item_to_news_source(item, current_run.id), current_run.id)
+                count += 1
 
     logger.info("Ingestion complete — %d item(s) stored", count)
     current_run.newsletters_found = count

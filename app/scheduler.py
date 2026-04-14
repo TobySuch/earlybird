@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 
+from app import tracing as app_tracing
 from app.config import (
     GMAIL_LABEL_DEFAULT,
     GMAIL_LABEL_KEY,
@@ -63,17 +64,18 @@ def execute_pipeline(run_id: int) -> None:
             ),
         }
         sources = [GmailSource(db=db, cfg=gmail_cfg)]
-        ingest.run(db, run, sources)
-        if not run.newsletters_found:
-            app_logger.info("No newsletters found — skipping processing")
-            for source in sources:
-                source.mark_processed()
-            run.status = "success"
-            return
-        process.run(db, run)
-        episode = db.query(Episode).filter(Episode.run_id == run.id).first()
-        if episode:
-            publish.run(db, episode)
+        with app_tracing.span("pipeline", attributes={"run_id": run_id}):
+            ingest.run(db, run, sources)
+            if not run.newsletters_found:
+                app_logger.info("No newsletters found — skipping processing")
+                for source in sources:
+                    source.mark_processed()
+                run.status = "success"
+                return
+            process.run(db, run)
+            episode = db.query(Episode).filter(Episode.run_id == run.id).first()
+            if episode:
+                publish.run(db, episode)
         for source in sources:
             source.mark_processed()
         run.status = "success"
