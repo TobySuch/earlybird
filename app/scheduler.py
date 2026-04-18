@@ -5,29 +5,6 @@ from datetime import datetime, timezone
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 
-# APScheduler's from_crontab does not remap crontab day-of-week numbers (0=Sun)
-# to its internal convention (0=Mon). "1-5" in crontab means Mon-Fri, but
-# APScheduler interprets it as Tue-Sat. We convert numbers to named days instead.
-_CRONTAB_DOW = {
-    "0": "sun", "1": "mon", "2": "tue", "3": "wed",
-    "4": "thu", "5": "fri", "6": "sat", "7": "sun",
-}
-
-
-def make_cron_trigger(cron: str) -> CronTrigger:
-    """Build a CronTrigger from a 5-field crontab string with correct day-of-week mapping."""
-    parts = cron.strip().split()
-    if len(parts) != 5:
-        raise ValueError(f"Expected 5 cron fields, got {len(parts)}: {cron!r}")
-    minute, hour, day, month, dow = parts
-    # Replace bare day numbers (not step values after '/') with named equivalents.
-    dow_fixed = re.sub(
-        r"(?<![/\d])([0-7])(?!\d)",
-        lambda m: _CRONTAB_DOW[m.group(1)],
-        dow,
-    )
-    return CronTrigger(minute=minute, hour=hour, day=day, month=month, day_of_week=dow_fixed)
-
 from app import tracing as app_tracing
 from app.config import (
     GMAIL_LABEL_DEFAULT,
@@ -46,6 +23,36 @@ from app.database import SessionLocal
 from app.models import Episode, Run
 from app.pipeline import ingest, process, publish
 from app.pipeline.sources.gmail import GmailSource
+
+# APScheduler's from_crontab does not remap crontab day-of-week numbers (0=Sun)
+# to its internal convention (0=Mon). "1-5" in crontab means Mon-Fri, but
+# APScheduler interprets it as Tue-Sat. We convert numbers to named days instead.
+_CRONTAB_DOW = {
+    "0": "sun",
+    "1": "mon",
+    "2": "tue",
+    "3": "wed",
+    "4": "thu",
+    "5": "fri",
+    "6": "sat",
+    "7": "sun",
+}
+
+
+def make_cron_trigger(cron: str) -> CronTrigger:
+    """Build a CronTrigger from a 5-field crontab string with correct day-of-week mapping."""
+    parts = cron.strip().split()
+    if len(parts) != 5:
+        raise ValueError(f"Expected 5 cron fields, got {len(parts)}: {cron!r}")
+    minute, hour, day, month, dow = parts
+    # Replace bare day numbers (not step values after '/') with named equivalents.
+    dow_fixed = re.sub(
+        r"(?<![/\d])([0-7])(?!\d)",
+        lambda m: _CRONTAB_DOW[m.group(1)],
+        dow,
+    )
+    return CronTrigger(minute=minute, hour=hour, day=day, month=month, day_of_week=dow_fixed)
+
 
 # AsyncIOScheduler runs inside uvicorn's event loop rather than a separate
 # daemon thread. This means it lives and dies with the event loop — there is
