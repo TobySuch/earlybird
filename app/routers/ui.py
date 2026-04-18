@@ -260,12 +260,10 @@ async def regenerate_feed_token(request: Request, db: Session = Depends(get_db))
 
 def _reschedule(cron: str, enabled: bool = True) -> None:
     """Update the running APScheduler job with the new cron/enabled state."""
-    from apscheduler.triggers.cron import CronTrigger
-
-    from app.scheduler import scheduler
+    from app.scheduler import make_cron_trigger, scheduler
 
     try:
-        scheduler.reschedule_job("pipeline", trigger=CronTrigger.from_crontab(cron))
+        scheduler.reschedule_job("pipeline", trigger=make_cron_trigger(cron))
         if enabled:
             scheduler.resume_job("pipeline")
         else:
