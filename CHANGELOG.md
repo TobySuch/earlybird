@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.8.1](https://github.com/TobySuch/earlybird/compare/v0.8.0...v0.8.1) (2026-04-18)
+
+
+### Bug Fixes
+
+* **scheduler:** correct crontab day-of-week mapping in APScheduler ([#45](https://github.com/TobySuch/earlybird/issues/45)) ([a7629ce](https://github.com/TobySuch/earlybird/commit/a7629cebbe9fb456630059a6b989738e152d662a))
+* **scheduler:** move make_cron_trigger after imports to fix E402 ([#47](https://github.com/TobySuch/earlybird/issues/47)) ([adaf558](https://github.com/TobySuch/earlybird/commit/adaf558df04d2f5203f6cb5c814914d414093832))
+
 ## [0.8.0](https://github.com/TobySuch/earlybird/compare/v0.7.0...v0.8.0) (2026-04-14)
 
 
