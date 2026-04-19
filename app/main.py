@@ -75,6 +75,22 @@ app = FastAPI(title="Earlybird", lifespan=lifespan)
 
 app.add_middleware(SessionMiddleware, secret_key=get_settings().secret_key)
 
+
+@app.middleware("http")
+async def log_access(request: Request, call_next):
+    response = await call_next(request)
+    user_agent = request.headers.get("user-agent", "-")
+    logger.info(
+        '%s %s %s - "%s" %s',
+        request.client.host if request.client else "-",
+        request.method,
+        request.url.path,
+        user_agent,
+        response.status_code,
+    )
+    return response
+
+
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 app.include_router(ui.router)
