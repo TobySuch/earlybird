@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.9.0](https://github.com/TobySuch/earlybird/compare/v0.8.1...v0.9.0) (2026-04-19)
+
+
+### Features
+
+* **middleware:** add HTTP access log with user agent ([#48](https://github.com/TobySuch/earlybird/issues/48)) ([8f41ca6](https://github.com/TobySuch/earlybird/commit/8f41ca68c6da1f648df0119397566f5ddbfa0cb4))
+
 ## [0.8.1](https://github.com/TobySuch/earlybird/compare/v0.8.0...v0.8.1) (2026-04-18)
 
 
