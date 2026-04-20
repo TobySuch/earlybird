@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.9.1](https://github.com/TobySuch/earlybird/compare/v0.9.0...v0.9.1) (2026-04-20)
+
+
+### Bug Fixes
+
+* **process:** format date clearly in system prompt and fix uv.lock release-please config ([#50](https://github.com/TobySuch/earlybird/issues/50)) ([b4f233d](https://github.com/TobySuch/earlybird/commit/b4f233d951a1031f8b4bf31c185b49c9cd5db3e7))
+
 ## [0.9.0](https://github.com/TobySuch/earlybird/compare/v0.8.1...v0.9.0) (2026-04-19)
 
 
