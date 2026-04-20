@@ -6,8 +6,8 @@
       "extra-files": [
         {
           "path": "uv.lock",
-          "type": "toml",
-          "jsonpath": "$.package[?(@.name=='earlybird')].version"
+          "type": "generic",
+          "search": "name = \"earlybird\"\nversion = \"{{version}}\""
         }
       ]
     }
