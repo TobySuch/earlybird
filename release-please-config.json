@@ -2,14 +2,13 @@
   "release-type": "python",
   "pull-request-title-pattern": "chore: release ${version}",
   "packages": {
-    ".": {
-      "extra-files": [
-        {
-          "path": "uv.lock",
-          "type": "generic",
-          "search": "name = \"earlybird\"\nversion = \"{{version}}\""
-        }
-      ]
+    ".": {}
+  },
+  "extra-files": [
+    {
+      "path": "uv.lock",
+      "type": "toml",
+      "jsonpath": "$.package[?(@.name.value=='earlybird')].version"
     }
-  }
+  ]
 }
