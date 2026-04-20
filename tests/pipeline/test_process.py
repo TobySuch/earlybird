@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import datetime as dt
 from datetime import datetime, timezone
 from unittest.mock import patch
 
@@ -139,6 +140,35 @@ def test_run_includes_source_title_in_message(db, current_run):
         process.run(db, current_run)
 
     assert "Important Article" in stub.calls[0]["user"]
+
+
+def test_format_date_ordinals():
+    assert process._format_date(dt.datetime(2026, 4, 20)) == "Monday, the 20th of April 2026"
+    assert process._format_date(dt.datetime(2026, 9, 1)) == "Tuesday, the 1st of September 2026"
+    assert process._format_date(dt.datetime(2026, 9, 2)) == "Wednesday, the 2nd of September 2026"
+    assert process._format_date(dt.datetime(2026, 9, 3)) == "Thursday, the 3rd of September 2026"
+    # teens should use "th" not "st/nd/rd"
+    assert process._format_date(dt.datetime(2026, 9, 11)) == "Friday, the 11th of September 2026"
+    assert process._format_date(dt.datetime(2026, 9, 12)) == "Saturday, the 12th of September 2026"
+    assert process._format_date(dt.datetime(2026, 9, 13)) == "Sunday, the 13th of September 2026"
+    assert process._format_date(dt.datetime(2026, 9, 21)) == "Monday, the 21st of September 2026"
+
+
+def test_run_system_prompt_contains_formatted_date(db, current_run):
+    _make_source(db, current_run.id)
+    stub = StubLLMProvider()
+    fixed_now = dt.datetime(2026, 4, 20, 8, 0, 0)
+
+    with (
+        patch("app.pipeline.process.get_llm_provider", return_value=stub),
+        patch("app.pipeline.process.get_llm_user_prompt", return_value=""),
+        patch("app.pipeline.process.datetime") as mock_dt,
+    ):
+        mock_dt.datetime.now.return_value = fixed_now
+        process.run(db, current_run)
+
+    assert "Monday, the 20th of April 2026" in stub.calls[0]["system"]
+    assert "Disregard any dates" in stub.calls[0]["system"]
 
 
 def test_run_podcast_script_is_none(db, current_run):

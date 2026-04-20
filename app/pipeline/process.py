@@ -13,9 +13,9 @@ from app.models import Episode, NewsSource, Run
 
 logger = logging.getLogger(__name__)
 
-current_date = datetime.datetime.now().strftime("%B %d, %Y")
+_ORDINAL_SUFFIX = {1: "st", 2: "nd", 3: "rd"}
 
-SYSTEM_PROMPT = """\
+SYSTEM_PROMPT_TEMPLATE = """\
 You are an expert newsletter editor. Your job is to read a batch of newsletter \
 content and produce a concise, well-structured daily digest for the reader.
 
@@ -24,11 +24,21 @@ Group related topics together. Use clear section headings. \
 Write in plain English - no bullet-point spam, no filler phrases like \
 "In today's edition". Aim for a digest the reader can finish in under 5 minutes.
 
-Today's date is {current_date}. Ignore the dates given in the source content - they may be old.
+Today's date is {current_date}. Disregard any dates mentioned in the source \
+content — they belong to the original articles and are not today's date.
 
 The reader's personal preferences follow after these instructions. \
 Tailor the selection and emphasis accordingly.\
 """
+
+
+def _ordinal(n: int) -> str:
+    suffix = _ORDINAL_SUFFIX.get(n % 10 if not (11 <= n % 100 <= 13) else 0, "th")
+    return f"{n}{suffix}"
+
+
+def _format_date(dt: datetime.datetime) -> str:
+    return f"{dt.strftime('%A')}, the {_ordinal(dt.day)} of {dt.strftime('%B %Y')}"
 
 
 def _build_user_message(sources: list[NewsSource], user_prompt: str) -> str:
@@ -74,11 +84,14 @@ def run(db: Session, current_run: Run) -> None:
     provider = get_llm_provider(db)
     user_prompt = get_llm_user_prompt(db)
 
+    system_prompt = SYSTEM_PROMPT_TEMPLATE.format(
+        current_date=_format_date(datetime.datetime.now())
+    )
     user_message = _build_user_message(sources, user_prompt)
     logger.debug("User message length: %d chars", len(user_message))
 
     with app_tracing.span("process", attributes={"sources_count": len(sources)}):
-        newsletter_text = provider.complete(system=SYSTEM_PROMPT, user=user_message)
+        newsletter_text = provider.complete(system=system_prompt, user=user_message)
 
     episode = Episode(
         run_id=current_run.id,
