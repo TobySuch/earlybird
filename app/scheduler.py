@@ -1,26 +1,16 @@
 import logging
 import re
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
+from apscheduler.triggers.interval import IntervalTrigger
 
 from app import tracing as app_tracing
-from app.config import (
-    GMAIL_LABEL_DEFAULT,
-    GMAIL_LABEL_KEY,
-    GMAIL_LOOKBACK_DAYS_DEFAULT,
-    GMAIL_LOOKBACK_DAYS_KEY,
-    GMAIL_PROCESSED_LABEL_DEFAULT,
-    GMAIL_PROCESSED_LABEL_KEY,
-    SCHEDULE_CRON_DEFAULT,
-    SCHEDULE_CRON_KEY,
-    SCHEDULE_ENABLED_DEFAULT,
-    SCHEDULE_ENABLED_KEY,
-    get_db_config,
-)
+from app.config import get_db_config
 from app.database import SessionLocal
-from app.models import Episode, Run
+from app.models import Episode, NewsSource, Run
 from app.pipeline import ingest, process, publish
 from app.pipeline.sources.gmail import GmailSource
 
@@ -86,13 +76,9 @@ def execute_pipeline(run_id: int) -> None:
     try:
         run = db.get(Run, run_id)
         gmail_cfg = {
-            "label": get_db_config(db, GMAIL_LABEL_KEY, GMAIL_LABEL_DEFAULT),
-            "processed_label": get_db_config(
-                db, GMAIL_PROCESSED_LABEL_KEY, GMAIL_PROCESSED_LABEL_DEFAULT
-            ),
-            "lookback_days": int(
-                get_db_config(db, GMAIL_LOOKBACK_DAYS_KEY, GMAIL_LOOKBACK_DAYS_DEFAULT)
-            ),
+            "label": get_db_config(db, "gmail.label"),
+            "processed_label": get_db_config(db, "gmail.processed_label"),
+            "lookback_days": int(get_db_config(db, "gmail.lookback_days")),
         }
         sources = [GmailSource(db=db, cfg=gmail_cfg)]
         with app_tracing.span("pipeline", attributes={"run_id": run_id}):
@@ -138,18 +124,60 @@ def run_pipeline() -> None:
     execute_pipeline(run_id)
 
 
+def run_retention() -> None:
+    """Delete episodes (and their runs and sources) older than retention.max_days."""
+    db = SessionLocal()
+    try:
+        if get_db_config(db, "retention.enabled") != "true":
+            return
+        max_days = int(get_db_config(db, "retention.max_days"))
+        cutoff = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=max_days)
+        old_episodes = db.query(Episode).filter(Episode.created_at < cutoff).all()
+        for episode in old_episodes:
+            if episode.audio_path:
+                try:
+                    Path(episode.audio_path).unlink(missing_ok=True)
+                except OSError:
+                    pass
+            run_id = episode.run_id
+            db.delete(episode)
+            db.flush()  # remove Episode FK ref before deleting NewsSource/Run
+            db.query(NewsSource).filter(NewsSource.run_id == run_id).delete()
+            run = db.get(Run, run_id)
+            if run is not None:
+                db.delete(run)
+        db.commit()
+        if old_episodes:
+            logging.getLogger(__name__).info("Retention: deleted %d episode(s)", len(old_episodes))
+    except Exception:
+        logging.getLogger(__name__).exception("Retention job failed")
+        db.rollback()
+    finally:
+        db.close()
+
+
 def start_scheduler() -> None:
     """Start the scheduler with the cron expression from DB config."""
     db = SessionLocal()
     try:
-        cron = get_db_config(db, SCHEDULE_CRON_KEY, SCHEDULE_CRON_DEFAULT)
-        enabled = get_db_config(db, SCHEDULE_ENABLED_KEY, SCHEDULE_ENABLED_DEFAULT) == "true"
+        cron = get_db_config(db, "schedule.cron")
+        enabled = get_db_config(db, "schedule.enabled") == "true"
     finally:
         db.close()
 
     scheduler.add_job(run_pipeline, make_cron_trigger(cron), id="pipeline")
     if not enabled:
         scheduler.pause_job("pipeline")
+
+    # Always register the retention job; it checks the enabled flag at runtime.
+    # Fires 60 s after startup, then every 24 h.
+    scheduler.add_job(
+        run_retention,
+        IntervalTrigger(hours=24),
+        id="retention",
+        next_run_time=datetime.now(timezone.utc) + timedelta(seconds=60),
+    )
+
     scheduler.start()
 
 

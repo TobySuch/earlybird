@@ -176,7 +176,7 @@
   </section>
 
   {# ── Podcast Feed ─────────────────────────────────────────────────────── #}
-  <section class="bg-white border border-gray-200 rounded-lg overflow-hidden mb-8"
+  <section class="bg-white border border-gray-200 rounded-lg overflow-hidden"
     x-data="{ enabled: {{ 'true' if feed_enabled else 'false' }}, copied: false }">
     <div class="px-6 py-4 border-b border-gray-100">
       <h2 class="text-sm font-semibold text-gray-900">Podcast Feed</h2>
@@ -219,6 +219,31 @@
         {% endif %}
       </div>
 
+    </div>
+  </section>
+
+  {# ── Retention ────────────────────────────────────────────────────────── #}
+  <section class="bg-white border border-gray-200 rounded-lg overflow-hidden"
+    x-data="{ enabled: {{ 'true' if retention_enabled else 'false' }} }">
+    <div class="px-6 py-4 border-b border-gray-100">
+      <h2 class="text-sm font-semibold text-gray-900">Retention</h2>
+      <p class="text-xs text-gray-400 mt-0.5">Automatically delete old episodes to save disk space.</p>
+    </div>
+    <div class="px-6 py-5 space-y-4">
+      <label class="flex items-center gap-2 cursor-pointer select-none text-sm text-gray-600">
+        <input type="checkbox" name="retention_enabled" value="1"
+          {% if retention_enabled %}checked{% endif %}
+          x-model="enabled"
+          class="text-blue-600 border-gray-300 rounded focus:ring-blue-500 cursor-pointer">
+        Automatically delete episodes after a set number of days
+      </label>
+      <div x-show="enabled" x-cloak class="w-56">
+        <label class="block text-xs font-medium text-gray-600 mb-1.5" for="retention_max_days">Keep episodes for (days)</label>
+        <input id="retention_max_days" name="retention_max_days" type="number" min="1" max="3650"
+          value="{{ retention_max_days }}"
+          class="w-full text-sm border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+        <p class="text-xs text-gray-400 mt-1">Episodes older than this will be permanently deleted, including their audio files.</p>
+      </div>
     </div>
   </section>
 
