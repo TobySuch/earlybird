@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.10.0](https://github.com/TobySuch/earlybird/compare/v0.9.1...v0.10.0) (2026-04-24)
+
+
+### Features
+
+* **feed:** add LLM-generated episode headlines to RSS feed and UI ([#57](https://github.com/TobySuch/earlybird/issues/57)) ([dfc831e](https://github.com/TobySuch/earlybird/commit/dfc831eb318eeecbe867d21f066a3e37b9d0069a))
+* **settings:** add auto-retention setting and consolidate config keys ([#56](https://github.com/TobySuch/earlybird/issues/56)) ([6fc998e](https://github.com/TobySuch/earlybird/commit/6fc998e7547460f429bc685aee3194e9f0ed876e))
+
+
+### Bug Fixes
+
+* **tracing:** populate request/response on MLflow trace root span ([#53](https://github.com/TobySuch/earlybird/issues/53)) ([1b6d4b2](https://github.com/TobySuch/earlybird/commit/1b6d4b24bac35b03d8dd742f5793bd78656e3bd6))
+
+
+### Documentation
+
+* remove Audiobookshelf, generalise LLM provider references ([#55](https://github.com/TobySuch/earlybird/issues/55)) ([7df861b](https://github.com/TobySuch/earlybird/commit/7df861b5b9854f8cfa599e2427bc7352bafbf7f6))
+
 ## [0.9.1](https://github.com/TobySuch/earlybird/compare/v0.9.0...v0.9.1) (2026-04-20)
 
 
