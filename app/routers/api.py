@@ -10,14 +10,7 @@ from fastapi.responses import FileResponse, Response
 from sqlalchemy.orm import Session
 
 from app.auth import require_user_api
-from app.config import (
-    FEED_ENABLED_DEFAULT,
-    FEED_ENABLED_KEY,
-    FEED_TOKEN_DEFAULT,
-    FEED_TOKEN_KEY,
-    get_db_config,
-    get_settings,
-)
+from app.config import get_db_config, get_settings
 from app.database import get_db
 from app.models import Episode, Run
 
@@ -57,23 +50,12 @@ async def unprocessed_count(db: Session = Depends(get_db)):
     """Count unprocessed Gmail messages using the same config as the pipeline."""
     from datetime import timedelta
 
-    from app.config import (
-        GMAIL_LABEL_DEFAULT,
-        GMAIL_LABEL_KEY,
-        GMAIL_LOOKBACK_DAYS_DEFAULT,
-        GMAIL_LOOKBACK_DAYS_KEY,
-        GMAIL_PROCESSED_LABEL_DEFAULT,
-        GMAIL_PROCESSED_LABEL_KEY,
-        get_db_config,
-    )
     from app.pipeline.sources.gmail import GmailSource
 
-    lookback_days = int(get_db_config(db, GMAIL_LOOKBACK_DAYS_KEY, GMAIL_LOOKBACK_DAYS_DEFAULT))
+    lookback_days = int(get_db_config(db, "gmail.lookback_days"))
     cfg = {
-        "label": get_db_config(db, GMAIL_LABEL_KEY, GMAIL_LABEL_DEFAULT),
-        "processed_label": get_db_config(
-            db, GMAIL_PROCESSED_LABEL_KEY, GMAIL_PROCESSED_LABEL_DEFAULT
-        ),
+        "label": get_db_config(db, "gmail.label"),
+        "processed_label": get_db_config(db, "gmail.processed_label"),
         "lookback_days": lookback_days,
     }
     source = GmailSource(db=db, cfg=cfg)
@@ -89,8 +71,8 @@ async def unprocessed_count(db: Session = Depends(get_db)):
 
 def _validate_feed_token(token: str, db: Session) -> tuple[bool, bool]:
     """Return (enabled, valid_token) for the feed."""
-    enabled = get_db_config(db, FEED_ENABLED_KEY, FEED_ENABLED_DEFAULT) == "true"
-    stored = get_db_config(db, FEED_TOKEN_KEY, FEED_TOKEN_DEFAULT)
+    enabled = get_db_config(db, "feed.enabled") == "true"
+    stored = get_db_config(db, "feed.token")
     return enabled, bool(stored) and stored == token
 
 

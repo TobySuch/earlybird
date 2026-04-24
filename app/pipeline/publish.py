@@ -5,20 +5,7 @@ import logging
 from sqlalchemy.orm import Session
 
 from app import tracing as app_tracing
-from app.config import (
-    TTS_ENABLED_DEFAULT,
-    TTS_ENABLED_KEY,
-    TTS_INSTRUCTIONS_DEFAULT,
-    TTS_INSTRUCTIONS_KEY,
-    TTS_MODEL_ID_DEFAULT,
-    TTS_MODEL_ID_KEY,
-    TTS_PROVIDER_DEFAULT,
-    TTS_PROVIDER_KEY,
-    TTS_VOICE_ID_DEFAULT,
-    TTS_VOICE_ID_KEY,
-    get_db_config,
-    get_settings,
-)
+from app.config import get_db_config, get_settings
 from app.models import Episode
 from app.tts.factory import AUDIO_DIR, get_tts_provider
 
@@ -34,13 +21,13 @@ def run(db: Session, episode: Episode) -> None:
     3. Generate MP3 from episode.newsletter_text via the provider.
     4. Save to data/audio/episode_{episode.id}.mp3, update episode.audio_path.
     """
-    tts_enabled = get_db_config(db, TTS_ENABLED_KEY, TTS_ENABLED_DEFAULT) == "true"
+    tts_enabled = get_db_config(db, "tts.enabled") == "true"
     if not tts_enabled:
         logger.info("TTS disabled — skipping publish")
         return
 
     settings = get_settings()
-    provider_name = get_db_config(db, TTS_PROVIDER_KEY, TTS_PROVIDER_DEFAULT)
+    provider_name = get_db_config(db, "tts.provider")
 
     if provider_name == "openai":
         api_key = settings.openai_tts_api_key or settings.openai_api_key
@@ -58,13 +45,13 @@ def run(db: Session, episode: Episode) -> None:
         logger.warning("Episode %d has no newsletter_text — skipping publish", episode.id)
         return
 
-    voice_id = get_db_config(db, TTS_VOICE_ID_KEY, TTS_VOICE_ID_DEFAULT)
+    voice_id = get_db_config(db, "tts.voice_id")
     if not voice_id:
         logger.warning("tts.voice_id not configured — skipping publish")
         return
 
-    model_id = get_db_config(db, TTS_MODEL_ID_KEY, TTS_MODEL_ID_DEFAULT)
-    instructions = get_db_config(db, TTS_INSTRUCTIONS_KEY, TTS_INSTRUCTIONS_DEFAULT)
+    model_id = get_db_config(db, "tts.model_id")
+    instructions = get_db_config(db, "tts.instructions")
 
     tts = get_tts_provider(db)
     with app_tracing.span(

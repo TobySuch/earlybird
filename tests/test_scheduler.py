@@ -1,10 +1,16 @@
-"""Tests for make_cron_trigger's correct day-of-week mapping."""
+"""Tests for make_cron_trigger's correct day-of-week mapping, and run_retention."""
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
+from unittest.mock import MagicMock, patch
 
 import pytest
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
 
-from app.scheduler import make_cron_trigger
+from app.database import Base
+from app.models import Config, Episode, NewsSource, Run
+from app.scheduler import make_cron_trigger, run_retention
 
 
 def _fire_dates(cron: str, count: int = 7, start: datetime | None = None) -> list[str]:
@@ -65,3 +71,109 @@ def test_named_days_passthrough():
 def test_invalid_field_count():
     with pytest.raises(ValueError, match="5 cron fields"):
         make_cron_trigger("0 6 * *")
+
+
+# ── run_retention ─────────────────────────────────────────────────────────────
+
+
+@pytest.fixture()
+def db_session():
+    engine = create_engine(
+        "sqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    Base.metadata.create_all(engine)
+    Session = sessionmaker(bind=engine)
+    session = Session()
+    yield session
+    session.close()
+
+
+def _set_config(db, key: str, value: str) -> None:
+    db.add(Config(key=key, value=value))
+    db.commit()
+
+
+def _make_run_and_episode(db, age_days: int, audio_path: str | None = None) -> Episode:
+    """Insert a Run + Episode created `age_days` ago."""
+    created = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=age_days)
+    run = Run(started_at=created, status="success")
+    db.add(run)
+    db.commit()
+    source = NewsSource(run_id=run.id, title="T", source_type="gmail", source_name="S")
+    db.add(source)
+    episode = Episode(run_id=run.id, created_at=created, audio_path=audio_path)
+    db.add(episode)
+    db.commit()
+    db.refresh(episode)
+    return episode
+
+
+def _patch_session(db_session):
+    """Return a context manager that patches SessionLocal to return db_session."""
+    mock_session = MagicMock()
+    mock_session.__enter__ = MagicMock(return_value=db_session)
+    mock_session.__exit__ = MagicMock(return_value=False)
+    # run_retention calls SessionLocal() directly (not as context manager)
+    return patch("app.scheduler.SessionLocal", return_value=db_session)
+
+
+def test_retention_no_op_when_disabled(db_session):
+    _set_config(db_session, "retention.enabled", "false")
+    _make_run_and_episode(db_session, age_days=60)
+
+    with _patch_session(db_session):
+        run_retention()
+
+    assert db_session.query(Episode).count() == 1
+
+
+def test_retention_skips_recent_episodes(db_session):
+    _set_config(db_session, "retention.enabled", "true")
+    _set_config(db_session, "retention.max_days", "30")
+    _make_run_and_episode(db_session, age_days=5)
+
+    with _patch_session(db_session):
+        run_retention()
+
+    assert db_session.query(Episode).count() == 1
+
+
+def test_retention_deletes_old_episode_run_and_sources(db_session):
+    _set_config(db_session, "retention.enabled", "true")
+    _set_config(db_session, "retention.max_days", "30")
+    _make_run_and_episode(db_session, age_days=45)
+
+    with _patch_session(db_session):
+        run_retention()
+
+    assert db_session.query(Episode).count() == 0
+    assert db_session.query(NewsSource).count() == 0
+    assert db_session.query(Run).count() == 0
+
+
+def test_retention_deletes_audio_file(db_session, tmp_path):
+    _set_config(db_session, "retention.enabled", "true")
+    _set_config(db_session, "retention.max_days", "30")
+    audio = tmp_path / "episode_1.mp3"
+    audio.write_bytes(b"fake-mp3")
+    _make_run_and_episode(db_session, age_days=45, audio_path=str(audio))
+
+    with _patch_session(db_session):
+        run_retention()
+
+    assert not audio.exists()
+    assert db_session.query(Episode).count() == 0
+
+
+def test_retention_handles_missing_audio_gracefully(db_session, tmp_path):
+    _set_config(db_session, "retention.enabled", "true")
+    _set_config(db_session, "retention.max_days", "30")
+    missing = str(tmp_path / "nonexistent.mp3")
+    _make_run_and_episode(db_session, age_days=45, audio_path=missing)
+
+    with _patch_session(db_session):
+        run_retention()  # must not raise
+
+    assert db_session.query(Episode).count() == 0

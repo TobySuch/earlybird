@@ -143,10 +143,10 @@ def test_unprocessed_count_handles_error(client):
 
 
 def _set_feed_config(db_session, enabled: bool, token: str = "secret-token-abc"):
-    from app.config import FEED_ENABLED_KEY, FEED_TOKEN_KEY, set_db_config
+    from app.config import set_db_config
 
-    set_db_config(db_session, FEED_ENABLED_KEY, "true" if enabled else "false")
-    set_db_config(db_session, FEED_TOKEN_KEY, token)
+    set_db_config(db_session, "feed.enabled", "true" if enabled else "false")
+    set_db_config(db_session, "feed.token", token)
 
 
 def test_feed_disabled_returns_503(client, db_session):
