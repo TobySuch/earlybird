@@ -90,8 +90,14 @@ def run(db: Session, current_run: Run) -> None:
     user_message = _build_user_message(sources, user_prompt)
     logger.debug("User message length: %d chars", len(user_message))
 
-    with app_tracing.span("process", attributes={"sources_count": len(sources)}):
+    with app_tracing.span(
+        "process",
+        attributes={"sources_count": len(sources)},
+        inputs={"system": system_prompt, "user": user_message},
+    ) as active_span:
         newsletter_text = provider.complete(system=system_prompt, user=user_message)
+        if active_span is not None:
+            active_span.set_outputs({"result": newsletter_text})
 
     episode = Episode(
         run_id=current_run.id,
