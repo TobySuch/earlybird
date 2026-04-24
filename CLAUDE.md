@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Earlybird is a personal newsletter aggregator and podcast generator. It reads newsletters from Gmail, uses Claude Haiku to filter and summarise stories based on user interests, produces a daily digest viewable in a web UI, and optionally generates a TTS podcast episode uploaded to Audiobookshelf or served via a private RSS feed.
+Earlybird is a personal newsletter aggregator and podcast generator. It reads newsletters from Gmail, uses a configurable LLM to filter and summarise stories based on user interests, produces a daily digest viewable in a web UI, and optionally generates a TTS podcast episode served via a private RSS feed.
 
 ## Commands
 
@@ -66,8 +66,8 @@ app/
   database.py      # Session management
   pipeline/
     ingest.py      # Gmail OAuth2 fetch, label-as-processed, store stories
-    process.py     # Claude Haiku: filter by interests, summarise, write script
-    publish.py     # TTS (OpenAI or ElevenLabs), ABS upload
+    process.py     # LLM: filter by interests, summarise
+    publish.py     # TTS (OpenAI or ElevenLabs), audio generation
   routers/
     ui.py          # HTMX web UI (dashboard, episodes, sources, settings, run log)
     api.py         # JSON API (trigger run, status, feed config)
@@ -75,17 +75,17 @@ templates/         # Jinja2 HTML
 static/            # CSS, minimal JS
 ```
 
-**Pipeline flow:** APScheduler (cron) → `ingest.py` fetches Gmail since last `runs.started_at` → stories stored in DB → `process.py` sends to Claude Haiku → episode row written → `publish.py` generates MP3 and uploads to ABS.
+**Pipeline flow:** APScheduler (cron) → `ingest.py` fetches Gmail since last `runs.started_at` → stories stored in DB → `process.py` calls LLM → episode row written → `publish.py` generates MP3 (optional).
 
 **Key design decisions:**
 - Scheduling uses `runs.started_at` as the fetch window boundary, not wall-clock time — skipping weekends never drops stories.
-- All user settings (API keys, interest profile, TTS voice, ABS URL, cron schedule) live in the `config` key/value table, editable via the Settings UI.
+- All user settings (API keys, interest profile, TTS voice, cron schedule) live in the `config` key/value table, editable via the Settings UI.
 - The RSS podcast feed (`/feed.xml`) is disabled by default and served at a hard-to-guess URL when enabled.
 - Single Docker container with SQLite and Gmail OAuth token as mounted volumes; sits behind Traefik.
 
 **Database tables:** `runs`, `sources`, `stories`, `episodes`, `config` — see `app/models.py` for the full schema.
 
-**LLM usage:** Claude Haiku only, invoked in `pipeline/process.py`. User provides a natural-language interest profile stored in `config` that is injected into the prompt.
+**LLM usage:** Configurable provider (Anthropic or OpenAI-compatible), invoked in `pipeline/process.py`. User provides a natural-language interest profile stored in `config` that is injected into the prompt.
 
 ## Visual preview / browser inspection
 
