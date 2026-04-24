@@ -15,6 +15,13 @@ logger = logging.getLogger(__name__)
 
 _ORDINAL_SUFFIX = {1: "st", 2: "nd", 3: "rd"}
 
+HEADLINES_SYSTEM_PROMPT = """\
+You are a podcast episode summarizer. Extract 3-5 topic headlines from this \
+newsletter digest. Return them as a plain-text bullet list, one headline per \
+line, each starting with "• ". Headlines should be concise (5-8 words). \
+Return ONLY the bullet list, nothing else.\
+"""
+
 SYSTEM_PROMPT_TEMPLATE = """\
 You are an expert newsletter editor. Your job is to read a batch of newsletter \
 content and produce a concise, well-structured daily digest for the reader.
@@ -99,10 +106,19 @@ def run(db: Session, current_run: Run) -> None:
         if active_span is not None:
             active_span.set_outputs({"result": newsletter_text})
 
+    with app_tracing.span(
+        "process_headlines",
+        inputs={"digest": newsletter_text},
+    ) as hl_span:
+        episode_headlines = provider.complete(system=HEADLINES_SYSTEM_PROMPT, user=newsletter_text)
+        if hl_span is not None:
+            hl_span.set_outputs({"result": episode_headlines})
+
     episode = Episode(
         run_id=current_run.id,
         newsletter_text=newsletter_text,
         podcast_script=None,  # TODO: populate in publish.py
+        episode_headlines=episode_headlines,
     )
     db.add(episode)
 

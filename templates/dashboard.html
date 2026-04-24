@@ -8,7 +8,16 @@
     <p class="text-sm text-gray-500 mb-1">Latest Episode</p>
     <div class="flex items-end justify-between">
       {% if latest_episode %}
-      <p class="text-base font-medium text-gray-900">Created {{ latest_episode.created_at | timeago }}</p>
+      <div>
+        <p class="text-base font-medium text-gray-900">Created {{ latest_episode.created_at | timeago }}</p>
+        {% if latest_episode.episode_headlines %}
+        <div class="text-xs text-gray-400 mt-1 space-y-0.5">
+          {% for line in latest_episode.episode_headlines.strip().splitlines() %}
+          <div>{{ line }}</div>
+          {% endfor %}
+        </div>
+        {% endif %}
+      </div>
       <a href="/episodes/{{ latest_episode.id }}"
          class="inline-flex items-center justify-center w-9 h-9 bg-blue-600 hover:bg-blue-700 rounded transition-colors mb-0.5"
          title="Latest episode">

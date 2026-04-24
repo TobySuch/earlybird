@@ -171,6 +171,8 @@ def test_feed_no_audio_episodes_returns_empty_feed(client, db_session):
 
 
 def test_feed_returns_rss_with_episodes(client, db_session, tmp_path):
+    from unittest.mock import MagicMock, patch
+
     from app.models import Episode
 
     audio_file = tmp_path / "ep1.mp3"
@@ -182,7 +184,51 @@ def test_feed_returns_rss_with_episodes(client, db_session, tmp_path):
     db_session.commit()
     db_session.refresh(run)
 
-    episode = Episode(run_id=run.id, audio_path=str(audio_file), newsletter_text="Today's digest.")
+    episode = Episode(
+        run_id=run.id,
+        audio_path=str(audio_file),
+        newsletter_text="Today's digest.",
+        episode_headlines="• AI regulation shifts\n• Climate funding news",
+    )
+    db_session.add(episode)
+    db_session.commit()
+
+    mock_audio = MagicMock()
+    mock_audio.info.length = 125.0
+    _set_feed_config(db_session, enabled=True)
+    with patch("mutagen.mp3.MP3", return_value=mock_audio):
+        response = client.get("/api/feed/secret-token-abc")
+    assert response.status_code == 200
+    body = response.content.decode()
+    assert "<enclosure" in body
+    assert "audio/mpeg" in body
+    assert "Earlybird" in body
+    assert "AI regulation shifts" in body
+    assert "<description>" in body
+    assert "itunes:subtitle" in body
+    assert "itunes:duration" in body
+    assert "itunes:episode" in body
+    assert "itunes:category" in body
+
+
+def test_feed_falls_back_to_newsletter_text_when_no_headlines(client, db_session, tmp_path):
+    from app.models import Episode
+
+    audio_file = tmp_path / "ep2.mp3"
+    audio_file.write_bytes(b"\x00" * 512)
+
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    run = Run(started_at=now, status="success")
+    db_session.add(run)
+    db_session.commit()
+    db_session.refresh(run)
+
+    episode = Episode(
+        run_id=run.id,
+        audio_path=str(audio_file),
+        newsletter_text="Fallback digest text.",
+        episode_headlines=None,
+    )
     db_session.add(episode)
     db_session.commit()
 
@@ -190,9 +236,8 @@ def test_feed_returns_rss_with_episodes(client, db_session, tmp_path):
     response = client.get("/api/feed/secret-token-abc")
     assert response.status_code == 200
     body = response.content.decode()
-    assert "<enclosure" in body
-    assert "audio/mpeg" in body
-    assert "Earlybird" in body
+    assert "Fallback digest text." in body
+    assert "itunes:summary" in body
 
 
 def test_feed_audio_streams_file(client, db_session, tmp_path):

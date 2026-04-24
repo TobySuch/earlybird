@@ -40,15 +40,20 @@ def current_run(db):
 
 
 class StubLLMProvider:
-    """Minimal LLMProvider for process tests — no API calls."""
+    """Minimal LLMProvider for process tests — no API calls.
 
-    def __init__(self, response: str = "stub newsletter text") -> None:
-        self.response = response
+    Pass a list of responses to return different values on sequential calls;
+    the last entry is repeated if calls exceed the list length.
+    """
+
+    def __init__(self, responses: list[str] | str = "stub newsletter text") -> None:
+        self.responses = [responses] if isinstance(responses, str) else responses
         self.calls: list[dict] = []
 
     def complete(self, system: str, user: str) -> str:
         self.calls.append({"system": system, "user": user})
-        return self.response
+        idx = min(len(self.calls) - 1, len(self.responses) - 1)
+        return self.responses[idx]
 
 
 def _make_source(
@@ -125,7 +130,6 @@ def test_run_passes_user_prompt_in_message(db, current_run):
     ):
         process.run(db, current_run)
 
-    assert len(stub.calls) == 1
     assert "I love tech news" in stub.calls[0]["user"]
 
 
@@ -183,3 +187,57 @@ def test_run_podcast_script_is_none(db, current_run):
 
     episode = db.query(Episode).filter(Episode.run_id == current_run.id).first()
     assert episode.podcast_script is None
+
+
+def test_run_makes_two_llm_calls(db, current_run):
+    _make_source(db, current_run.id)
+    stub = StubLLMProvider(["digest text", "• Headline one\n• Headline two"])
+
+    with (
+        patch("app.pipeline.process.get_llm_provider", return_value=stub),
+        patch("app.pipeline.process.get_llm_user_prompt", return_value=""),
+    ):
+        process.run(db, current_run)
+
+    assert len(stub.calls) == 2
+
+
+def test_run_stores_episode_headlines(db, current_run):
+    _make_source(db, current_run.id)
+    stub = StubLLMProvider(["My digest.", "• Topic A\n• Topic B"])
+
+    with (
+        patch("app.pipeline.process.get_llm_provider", return_value=stub),
+        patch("app.pipeline.process.get_llm_user_prompt", return_value=""),
+    ):
+        process.run(db, current_run)
+
+    episode = db.query(Episode).filter(Episode.run_id == current_run.id).first()
+    assert episode.episode_headlines == "• Topic A\n• Topic B"
+
+
+def test_run_headlines_call_uses_newsletter_text_as_input(db, current_run):
+    _make_source(db, current_run.id)
+    stub = StubLLMProvider(["My digest.", "• Topic A"])
+
+    with (
+        patch("app.pipeline.process.get_llm_provider", return_value=stub),
+        patch("app.pipeline.process.get_llm_user_prompt", return_value=""),
+    ):
+        process.run(db, current_run)
+
+    # Second call's user message should be the newsletter_text from the first call
+    assert stub.calls[1]["user"] == "My digest."
+    assert process.HEADLINES_SYSTEM_PROMPT in stub.calls[1]["system"]
+
+
+def test_run_no_sources_skips_headlines_call(db, current_run):
+    stub = StubLLMProvider()
+
+    with (
+        patch("app.pipeline.process.get_llm_provider", return_value=stub),
+        patch("app.pipeline.process.get_llm_user_prompt", return_value=""),
+    ):
+        process.run(db, current_run)
+
+    assert stub.calls == []
