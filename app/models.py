@@ -44,6 +44,7 @@ class Episode(Base):
     run_id: Mapped[int] = mapped_column(Integer, ForeignKey("runs.id"), nullable=False)
     newsletter_text: Mapped[str | None] = mapped_column(Text, nullable=True)
     podcast_script: Mapped[str | None] = mapped_column(Text, nullable=True)
+    episode_headlines: Mapped[str | None] = mapped_column(Text, nullable=True)
     audio_path: Mapped[str | None] = mapped_column(String(500), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 

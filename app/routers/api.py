@@ -141,6 +141,7 @@ async def podcast_feed(token: str, request: Request, db: Session = Depends(get_d
     ET.SubElement(channel, f"{{{itunes_ns}}}author").text = "Earlybird"
     ET.SubElement(channel, f"{{{itunes_ns}}}explicit").text = "no"
     ET.SubElement(channel, f"{{{itunes_ns}}}type").text = "episodic"
+    ET.SubElement(channel, f"{{{itunes_ns}}}category", text="News")
     cover_url = f"{base}/static/web-app-manifest-512x512.png"
     ET.SubElement(channel, f"{{{itunes_ns}}}image", href=cover_url)
 
@@ -163,9 +164,30 @@ async def podcast_feed(token: str, request: Request, db: Session = Depends(get_d
         ET.SubElement(item, "pubDate").text = format_datetime(pub_dt)
         ET.SubElement(item, "enclosure", url=audio_url, length=str(length), type="audio/mpeg")
         ET.SubElement(item, f"{{{itunes_ns}}}explicit").text = "no"
-        if episode.newsletter_text:
+        ET.SubElement(item, f"{{{itunes_ns}}}episode").text = str(episode.id)
+
+        if episode.episode_headlines:
+            headlines = episode.episode_headlines.strip()
+            ET.SubElement(item, "description").text = headlines
+            ET.SubElement(item, f"{{{itunes_ns}}}summary").text = headlines
+            first = headlines.splitlines()[0].lstrip("•- ").strip()
+            ET.SubElement(item, f"{{{itunes_ns}}}subtitle").text = first
+        elif episode.newsletter_text:
             summary = episode.newsletter_text.strip()[:500]
+            ET.SubElement(item, "description").text = summary
             ET.SubElement(item, f"{{{itunes_ns}}}summary").text = summary
+
+        if episode.audio_path:
+            try:
+                from mutagen.mp3 import MP3
+
+                audio_meta = MP3(episode.audio_path)
+                secs = int(audio_meta.info.length)
+                ET.SubElement(
+                    item, f"{{{itunes_ns}}}duration"
+                ).text = f"{secs // 3600:02d}:{(secs % 3600) // 60:02d}:{secs % 60:02d}"
+            except Exception:
+                pass
 
     xml_bytes = (
         b'<?xml version="1.0" encoding="UTF-8"?>\n' + ET.tostring(rss, encoding="unicode").encode()
