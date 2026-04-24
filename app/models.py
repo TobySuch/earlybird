@@ -45,7 +45,6 @@ class Episode(Base):
     newsletter_text: Mapped[str | None] = mapped_column(Text, nullable=True)
     podcast_script: Mapped[str | None] = mapped_column(Text, nullable=True)
     audio_path: Mapped[str | None] = mapped_column(String(500), nullable=True)
-    abs_episode_id: Mapped[str | None] = mapped_column(String(200), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     run: Mapped["Run"] = relationship("Run", back_populates="episode")

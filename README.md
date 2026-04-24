@@ -2,7 +2,7 @@
 
 <img src="static/earlybird.svg" alt="Earlybird logo" width="80" height="80">
 
-Personal newsletter aggregator and podcast generator. Fetches newsletters from Gmail, summarises stories with Claude Haiku, produces a daily digest, and optionally generates a TTS podcast episode.
+Personal newsletter aggregator and podcast generator. Fetches newsletters from Gmail, uses an LLM to filter and summarise stories based on your interests, produces a daily digest, and optionally generates a TTS podcast episode.
 
 ## Setup
 
@@ -52,10 +52,10 @@ Key variables:
 | `SECRET_KEY` | Random secret for session signing. Generate with `openssl rand -hex 32`. |
 | `GMAIL_CLIENT_ID` | OAuth2 Client ID from step above. |
 | `GMAIL_CLIENT_SECRET` | OAuth2 Client Secret from step above. |
-| `ANTHROPIC_API_KEY` | Claude API key for summarisation. |
-| `OPENAI_API_KEY` | OpenAI API key for TTS (optional). |
-| `ABS_URL` | Base URL of your Audiobookshelf instance (optional). |
-| `ABS_API_KEY` | ABS API token (optional). |
+| `ANTHROPIC_API_KEY` | Anthropic API key — used when the LLM provider is set to Anthropic (optional). |
+| `OPENAI_API_KEY` | OpenAI API key — used for OpenAI-compatible LLM or TTS providers (optional). |
+| `OPENAI_TTS_API_KEY` | Separate API key for TTS when using a different service for digest and TTS (optional, falls back to `OPENAI_API_KEY`). |
+| `ELEVENLABS_API_KEY` | ElevenLabs API key — used when the TTS provider is set to ElevenLabs (optional). |
 | `MLFLOW_TRACKING_URI` | MLflow tracking server URL — enables LLM call tracing when set (optional). |
 | `MLFLOW_EXPERIMENT_NAME` | MLflow experiment to log traces under (optional, defaults to `"Default"`). |
 
@@ -92,7 +92,7 @@ You only need to do this once. The token is refreshed automatically.
 ### Running standalone (port 8000)
 
 ```bash
-cp .env.example .env      # fill in SECRET_KEY, GMAIL_*, ANTHROPIC_API_KEY
+cp .env.example .env      # fill in SECRET_KEY, GMAIL_*, and at least one LLM API key
 mkdir -p data             # persisted DB, token, and audio live here
 make docker-up            # builds image and starts container
 ```
@@ -130,7 +130,7 @@ Tests use an in-memory SQLite database and mock the Gmail API — no live creden
 
 ## MLflow tracing
 
-Earlybird can automatically send LLM call traces to an [MLflow](https://mlflow.org/) tracking server. All Anthropic and OpenAI API calls are captured — prompts, responses, latency, and model metadata — with no code changes required.
+Earlybird can automatically send LLM call traces to an [MLflow](https://mlflow.org/) tracking server. All LLM and TTS API calls are captured — prompts, responses, latency, and model metadata — with no code changes required.
 
 To enable, set `MLFLOW_TRACKING_URI` in your `.env`:
 
