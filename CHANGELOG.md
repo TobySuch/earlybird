@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.10.1](https://github.com/TobySuch/earlybird/compare/v0.10.0...v0.10.1) (2026-04-27)
+
+
+### Bug Fixes
+
+* **tracing:** use set_inputs() instead of inputs kwarg for mlflow.start_span ([#58](https://github.com/TobySuch/earlybird/issues/58)) ([f311bd4](https://github.com/TobySuch/earlybird/commit/f311bd4a586022d328030f9462987ae346ed2575))
+
 ## [0.10.0](https://github.com/TobySuch/earlybird/compare/v0.9.1...v0.10.0) (2026-04-24)
 
 
