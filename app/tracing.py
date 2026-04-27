@@ -1,5 +1,5 @@
 import logging
-from contextlib import nullcontext
+from contextlib import contextmanager, nullcontext
 from typing import Any
 
 import mlflow
@@ -21,8 +21,16 @@ def setup_tracing(tracking_uri: str, experiment_name: str) -> None:
     logger.info("MLflow tracing enabled (tracking URI: %s)", tracking_uri)
 
 
+@contextmanager
+def _mlflow_span(name: str, attributes: dict[str, Any] | None, inputs: dict[str, Any] | None):
+    with mlflow.start_span(name, attributes=attributes) as s:
+        if inputs:
+            s.set_inputs(inputs)
+        yield s
+
+
 def span(name: str, attributes: dict[str, Any] | None = None, inputs: dict[str, Any] | None = None):
     """Return an MLflow span context manager, or a no-op if tracing is disabled."""
     if not _tracing_enabled:
         return nullcontext()
-    return mlflow.start_span(name, attributes=attributes, inputs=inputs)
+    return _mlflow_span(name, attributes, inputs)

@@ -62,32 +62,36 @@ def test_span_returns_nullcontext_when_tracing_disabled():
 
 
 @patch("mlflow.start_span")
-def test_span_returns_mlflow_span_when_tracing_enabled(mock_start_span):
+def test_span_calls_mlflow_start_span_when_tracing_enabled(mock_start_span):
     import app.tracing as tracing_module
 
     tracing_module._tracing_enabled = True
-    mock_span = MagicMock()
-    mock_start_span.return_value = mock_span
+    mock_live_span = MagicMock()
+    mock_start_span.return_value.__enter__ = MagicMock(return_value=mock_live_span)
+    mock_start_span.return_value.__exit__ = MagicMock(return_value=False)
 
-    ctx = tracing_module.span("test_span", attributes={"key": "value"})
+    with tracing_module.span("test_span", attributes={"key": "value"}):
+        pass
 
-    mock_start_span.assert_called_once_with("test_span", attributes={"key": "value"}, inputs=None)
-    assert ctx is mock_span
+    mock_start_span.assert_called_once_with("test_span", attributes={"key": "value"})
+    mock_live_span.set_inputs.assert_not_called()
 
     tracing_module._tracing_enabled = False  # restore
 
 
 @patch("mlflow.start_span")
-def test_span_passes_inputs_to_mlflow(mock_start_span):
+def test_span_passes_inputs_via_set_inputs(mock_start_span):
     import app.tracing as tracing_module
 
     tracing_module._tracing_enabled = True
-    mock_span = MagicMock()
-    mock_start_span.return_value = mock_span
+    mock_live_span = MagicMock()
+    mock_start_span.return_value.__enter__ = MagicMock(return_value=mock_live_span)
+    mock_start_span.return_value.__exit__ = MagicMock(return_value=False)
 
-    ctx = tracing_module.span("test_span", inputs={"key": "value"})
+    with tracing_module.span("test_span", inputs={"key": "value"}):
+        pass
 
-    mock_start_span.assert_called_once_with("test_span", attributes=None, inputs={"key": "value"})
-    assert ctx is mock_span
+    mock_start_span.assert_called_once_with("test_span", attributes=None)
+    mock_live_span.set_inputs.assert_called_once_with({"key": "value"})
 
     tracing_module._tracing_enabled = False  # restore
