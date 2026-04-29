@@ -8,6 +8,7 @@ import html
 import logging
 import re
 from datetime import datetime, timezone
+from html.parser import HTMLParser
 
 from sqlalchemy.orm import Session
 
@@ -127,7 +128,7 @@ class GmailSource:
         """Extract a SourceItem from a raw Gmail API message payload."""
         headers = {h["name"].lower(): h["value"] for h in raw.get("payload", {}).get("headers", [])}
         subject = headers.get("subject", "(no subject)")
-        body = _extract_body(raw.get("payload", {}))
+        body = _clean_content(_extract_body(raw.get("payload", {})))
         url = _extract_first_url(body)
         published_at = _parse_date_header(headers.get("date"))
 
@@ -199,12 +200,171 @@ def _decode_b64(data: str) -> str:
     return base64.urlsafe_b64decode(padded).decode("utf-8", errors="replace")
 
 
+class _HTMLTextExtractor(HTMLParser):
+    """Extract visible text from HTML, suppressing style/script/head content."""
+
+    _SKIP_TAGS = frozenset({"style", "script", "head"})
+
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self._parts: list[str] = []
+        self._skip_depth: int = 0
+
+    def handle_starttag(self, tag: str, attrs) -> None:  # noqa: ANN001
+        if tag in self._SKIP_TAGS:
+            self._skip_depth += 1
+
+    def handle_endtag(self, tag: str) -> None:
+        if tag in self._SKIP_TAGS and self._skip_depth > 0:
+            self._skip_depth -= 1
+
+    def handle_data(self, data: str) -> None:
+        if self._skip_depth == 0:
+            self._parts.append(data)
+
+    def handle_comment(self, data: str) -> None:  # noqa: ANN001
+        pass
+
+    def get_text(self) -> str:
+        return "".join(self._parts)
+
+
 def _strip_html(text: str) -> str:
-    """Very lightweight HTML → plain text (strips tags, decodes entities)."""
-    text = re.sub(r"<[^>]+>", " ", text)
+    """Extract visible plain text from HTML, skipping style/script/head blocks."""
+    extractor = _HTMLTextExtractor()
+    extractor.feed(text)
+    raw = extractor.get_text()
+    raw = re.sub(r"[ \t]+", " ", raw)
+    raw = re.sub(r"\n{3,}", "\n\n", raw)
+    return raw.strip()
+
+
+_TRACKING_DOMAINS = re.compile(
+    r"https?://(?:"
+    r"click\.mailchimp\.com"
+    r"|click\.e\.economist\.com"
+    r"|links\.substack\.com"
+    r"|links\.tldrnewsletter\.com"
+    r"|a\.tldrnewsletter\.com"
+    r"|tracking\.tldrnewsletter\.com"
+    r"|link\.mail\.beehiiv\.com"
+    r"|email\.mg\.[^/]+"
+    r"|r\.email\.[^/]+"
+    r"|t\.co"
+    r")/[^\s\"'<>]*",
+    re.IGNORECASE,
+)
+
+_FOOTER_TRIGGERS = re.compile(
+    r"^(?:"
+    r"if you no longer wish to receive"
+    r"|you received this email because"
+    r"|you're receiving this because"
+    r"|you are receiving this"
+    r"|to unsubscribe from this list"
+    r"|to stop receiving"
+    r"|this email (?:was|has been) sent to"
+    r"|love tldr\?"
+    r"|want to advertise in tldr"
+    r"|links:\s*$"
+    r")",
+    re.IGNORECASE | re.MULTILINE,
+)
+
+_BOILERPLATE_LINE = re.compile(
+    r"^[ \t]*(?:"
+    r"view (?:this )?email in (?:your )?browser"
+    r"|view in browser"
+    r"|unsubscribe(?: here)?"
+    r"|manage (?:your )?(?:preferences|subscriptions?)"
+    r"|update (?:your )?(?:email )?preferences"
+    r"|copyright\s+(?:©\s*)?\d{4}"
+    r"|©\s*\d{4}"
+    r"|all rights reserved"
+    r"|follow us on (?:twitter|facebook|linkedin|instagram|youtube)"
+    r"|privacy policy"
+    r"|terms of (?:use|service)"
+    r"|read online"
+    r")[ \t]*[.|,]?[ \t]*$",
+    re.IGNORECASE | re.MULTILINE,
+)
+
+_SEPARATOR_LINE = re.compile(r"^[ \t]*[-=*_~]{3,}[ \t]*$", re.MULTILINE)
+
+_TRACKING_PARAMS = frozenset(
+    {
+        "utm_source",
+        "utm_medium",
+        "utm_campaign",
+        "utm_term",
+        "utm_content",
+        "utm_id",
+        "utm_reader",
+        "utm_referrer",
+        "mc_cid",
+        "mc_eid",
+        "fbclid",
+        "gclid",
+        "gclsrc",
+        "msclkid",
+    }
+)
+
+
+def _strip_utm_params(match: re.Match) -> str:
+    base = match.group(1)
+    query = match.group(2) or ""
+    fragment = match.group(3) or ""
+    if not query:
+        return base + fragment
+    pairs = query.lstrip("?").split("&")
+    cleaned = [p for p in pairs if p.split("=")[0].lower() not in _TRACKING_PARAMS]
+    if not cleaned:
+        return base + fragment
+    return base + "?" + "&".join(cleaned) + fragment
+
+
+def _clean_content(text: str) -> str:
+    """Remove noise from extracted email body before LLM ingestion."""
+    if not text:
+        return text
+
+    # Strip zero-width chars used as email preview padding (e.g. TLDR ‌ sequences)
+    text = re.sub(r"[​‌‍⁠﻿­]", "", text)
+
+    # Decode HTML entities in plain-text emails (e.g. Economist text/plain has &rsquo;)
     text = html.unescape(text)
-    text = re.sub(r"[ \t]+", " ", text)
+
+    # Strip residual HTML tags from hybrid plain-text/HTML emails
+    text = re.sub(r"<[^>]+>", " ", text)
+
+    # Strip UTM/tracking query params; preserve meaningful params
+    text = re.sub(
+        r"(\bhttps?://[^\s\"'<>?#]+)(\?[^\s\"'<>]*)(\#[^\s\"'<>]*)?",
+        _strip_utm_params,
+        text,
+    )
+
+    # Replace known tracking redirect URLs
+    text = _TRACKING_DOMAINS.sub("[link]", text)
+
+    # Truncate at footer boilerplate
+    m = _FOOTER_TRIGGERS.search(text)
+    if m:
+        text = text[: m.start()].rstrip()
+
+    # Remove standalone boilerplate lines
+    text = _BOILERPLATE_LINE.sub("", text)
+
+    # Remove decorative separators
+    text = _SEPARATOR_LINE.sub("", text)
+
+    # Remove TLDR-style inline footnote numbers: "read more [8]" → "read more"
+    text = re.sub(r"\s*\[\d+\]", "", text)
+
+    # Normalise blank lines
     text = re.sub(r"\n{3,}", "\n\n", text)
+
     return text.strip()
 
 

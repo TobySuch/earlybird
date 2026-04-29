@@ -11,6 +11,7 @@ from sqlalchemy.orm import sessionmaker
 from app.database import Base
 from app.pipeline.sources.gmail import (
     GmailSource,
+    _clean_content,
     _decode_b64,
     _extract_body,
     _extract_first_url,
@@ -168,6 +169,205 @@ def test_extract_body_multipart_prefers_plain():
         ],
     }
     assert _extract_body(payload) == "Plain part"
+
+
+# ── _strip_html improvements ──────────────────────────────────────────────────
+
+
+def test_strip_html_excludes_style_content():
+    html_input = (
+        "<html><head>"
+        "<style>body { font-family: Arial; color: #333; }</style>"
+        "</head><body><p>Real content here.</p></body></html>"
+    )
+    result = _strip_html(html_input)
+    assert "Real content here" in result
+    assert "font-family" not in result
+    assert "Arial" not in result
+    assert "#333" not in result
+
+
+def test_strip_html_excludes_script_content():
+    html_input = (
+        "<html><body>"
+        "<script>var tracker = 'abc123'; window.onload = function() {};</script>"
+        "<p>Newsletter body.</p>"
+        "</body></html>"
+    )
+    result = _strip_html(html_input)
+    assert "Newsletter body" in result
+    assert "tracker" not in result
+    assert "window.onload" not in result
+
+
+# ── _clean_content ────────────────────────────────────────────────────────────
+
+
+def test_clean_content_removes_utm_params():
+    text = (
+        "Read more at https://example.com/article?utm_source=newsletter"
+        "&utm_medium=email&utm_campaign=spring2024 for details."
+    )
+    result = _clean_content(text)
+    assert "https://example.com/article" in result
+    assert "utm_source" not in result
+    assert "utm_medium" not in result
+    assert "utm_campaign" not in result
+
+
+def test_clean_content_preserves_meaningful_query_params():
+    text = "Visit https://example.com/search?q=python&page=2 for results."
+    result = _clean_content(text)
+    assert "https://example.com/search?q=python&page=2" in result
+
+
+def test_clean_content_removes_tracking_urls():
+    text = (
+        "Read here: https://click.mailchimp.com/track/click/123456/example.com?p=xyz "
+        "and here: https://click.e.economist.com/?qs=ABB7InYiOjE "
+        "and here: https://links.tldrnewsletter.com/9jLT5n extra text."
+    )
+    result = _clean_content(text)
+    assert "click.mailchimp.com" not in result
+    assert "click.e.economist.com" not in result
+    assert "links.tldrnewsletter.com" not in result
+    assert result.count("[link]") == 3
+
+
+def test_clean_content_truncates_at_footer():
+    text = (
+        "Today's top stories:\n\n"
+        "Item 1: AI makes progress.\n\n"
+        "You received this email because you subscribed at example.com.\n"
+        "To unsubscribe visit https://example.com/unsub\n"
+        "Copyright © 2024 Example Inc."
+    )
+    result = _clean_content(text)
+    assert "AI makes progress" in result
+    assert "You received this email because" not in result
+    assert "Copyright" not in result
+
+
+def test_clean_content_truncates_at_footer_case_insensitive():
+    text = "Real content.\n\nIF YOU NO LONGER WISH TO RECEIVE these emails, click here."
+    result = _clean_content(text)
+    assert "Real content" in result
+    assert "IF YOU NO LONGER WISH" not in result
+
+
+def test_clean_content_truncates_tldr_footer():
+    text = (
+        "Great article about Python.\n\n"
+        "Love TLDR? Tell your friends and get rewards!\n\n"
+        "Share your referral link: https://refer.tldr.tech/abc123"
+    )
+    result = _clean_content(text)
+    assert "Great article about Python" in result
+    assert "Tell your friends" not in result
+    assert "refer.tldr.tech" not in result
+
+
+def test_clean_content_truncates_links_section():
+    text = (
+        "OpenAI introduced workspace agents.\n\n"
+        "Links:\n"
+        "------\n"
+        "[1] https://example.com/article\n"
+        "[2] https://example.com/other\n"
+    )
+    result = _clean_content(text)
+    assert "OpenAI introduced workspace agents" in result
+    assert "[1] https://example.com/article" not in result
+
+
+def test_clean_content_removes_boilerplate_lines():
+    text = (
+        "Great article about Python.\n"
+        "View this email in your browser\n"
+        "More article content here.\n"
+        "Unsubscribe\n"
+        "Follow us on Twitter\n"
+        "All rights reserved\n"
+        "Final sentence of real content."
+    )
+    result = _clean_content(text)
+    assert "Great article about Python" in result
+    assert "More article content here" in result
+    assert "Final sentence of real content" in result
+    assert "View this email in your browser" not in result
+    assert "All rights reserved" not in result
+    lines = [ln.strip() for ln in result.splitlines() if ln.strip()]
+    assert "Unsubscribe" not in lines
+    assert "Follow us on Twitter" not in lines
+
+
+def test_clean_content_removes_decorative_separators():
+    text = "Section heading\n---\nBody text.\n=====\nMore body text.\n***\n"
+    result = _clean_content(text)
+    assert "Section heading" in result
+    assert "Body text" in result
+    assert "More body text" in result
+    for line in result.splitlines():
+        stripped = line.strip()
+        if stripped:
+            assert not all(c in "-=*_~" for c in stripped), f"Separator leaked: {line!r}"
+
+
+def test_clean_content_removes_zero_width_chars():
+    text = "OpenAI introduced workspace agents‌ ‌ ‌ for complex tasks."
+    result = _clean_content(text)
+    assert "‌" not in result
+    assert "OpenAI introduced workspace agents" in result
+    assert "for complex tasks" in result
+
+
+def test_clean_content_decodes_html_entities():
+    text = "Britain&rsquo;s alliance with America &mdash; it&rsquo;s complicated."
+    result = _clean_content(text)
+    assert "’" in result  # right single quotation mark
+    assert "&rsquo;" not in result
+    assert "&mdash;" not in result
+
+
+def test_clean_content_strips_residual_html_tags():
+    text = (
+        "<link rel=stylesheet href=https://example.com/font.css>\n"
+        "The Economist\n\n"
+        "Real article content here."
+    )
+    result = _clean_content(text)
+    assert "Real article content here" in result
+    assert "<link" not in result
+    assert "rel=stylesheet" not in result
+
+
+def test_clean_content_removes_tldr_footnote_numbers():
+    text = (
+        "OpenAI introduced workspace agents [8] in ChatGPT, "
+        "allowing teams to create shared AI agents [9] for complex tasks."
+    )
+    result = _clean_content(text)
+    assert "[8]" not in result
+    assert "[9]" not in result
+    assert "OpenAI introduced workspace agents" in result
+    assert "allowing teams to create shared AI agents" in result
+
+
+def test_clean_content_normalises_whitespace():
+    text = "Para one.\n\n\n\n\nPara two."
+    result = _clean_content(text)
+    assert "Para one" in result
+    assert "Para two" in result
+    assert "\n\n\n" not in result
+
+
+def test_clean_content_empty_string():
+    assert _clean_content("") == ""
+
+
+def test_clean_content_plain_text_passthrough():
+    text = "Hello, world. This is a plain newsletter with no junk."
+    assert _clean_content(text) == text
 
 
 # ── GmailSource.fetch() tests ─────────────────────────────────────────────────
