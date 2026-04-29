@@ -33,6 +33,19 @@ def test_complete_passes_model_and_messages():
     assert call_kwargs["messages"] == [{"role": "user", "content": "user text"}]
 
 
+def test_complete_passes_max_tokens():
+    mock_message = MagicMock()
+    mock_message.content[0].text = "result"
+
+    with patch("app.llm.anthropic_provider.anthropic.Anthropic") as mock_cls:
+        mock_create = mock_cls.return_value.messages.create
+        mock_create.return_value = mock_message
+        provider = AnthropicProvider(api_key="test-key", model="my-model", max_tokens=1024)
+        provider.complete(system="sys", user="user")
+
+    assert mock_create.call_args.kwargs["max_tokens"] == 1024
+
+
 def test_complete_raises_on_empty_content():
     mock_message = MagicMock()
     mock_message.content = []

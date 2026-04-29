@@ -16,6 +16,7 @@ class Settings(BaseSettings):
     gmail_client_secret: str = ""
     # Set to e.g. https://earlybird.example.com to fix redirect URIs behind a reverse proxy
     public_base_url: str = ""
+    llm_max_tokens: int = 4096
     # MLflow tracing — set MLFLOW_TRACKING_URI to enable autologging for LLM calls
     mlflow_tracking_uri: str = ""
     mlflow_experiment_name: str = ""

@@ -12,18 +12,22 @@ def get_llm_provider(db: Session):
     provider = get_db_config(db, "llm.provider")
     model = get_db_config(db, "llm.model")
 
+    max_tokens = get_settings().llm_max_tokens
+
     if provider == "anthropic":
         from app.llm.anthropic_provider import AnthropicProvider
 
         api_key = get_settings().anthropic_api_key
-        return AnthropicProvider(api_key=api_key, model=model)
+        return AnthropicProvider(api_key=api_key, model=model, max_tokens=max_tokens)
 
     if provider == "openai":
         from app.llm.openai_provider import OpenAIProvider
 
         api_key = get_settings().openai_api_key
         base_url = get_db_config(db, "llm.openai_base_url")
-        return OpenAIProvider(api_key=api_key, model=model, base_url=base_url)
+        return OpenAIProvider(
+            api_key=api_key, model=model, base_url=base_url, max_tokens=max_tokens
+        )
 
     raise ValueError(f"Unknown LLM provider: {provider!r}")
 
