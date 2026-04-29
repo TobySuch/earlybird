@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.11.0](https://github.com/TobySuch/earlybird/compare/v0.10.2...v0.11.0) (2026-04-29)
+
+
+### Features
+
+* **ingest:** clean email content before LLM ingestion ([#62](https://github.com/TobySuch/earlybird/issues/62)) ([d8a98eb](https://github.com/TobySuch/earlybird/commit/d8a98eb337a37de1d5250fc048dbf11ea3e58311))
+
 ## [0.10.2](https://github.com/TobySuch/earlybird/compare/v0.10.1...v0.10.2) (2026-04-29)
 
 
