@@ -19,12 +19,15 @@ _OPENROUTER_HEADERS = {
 class OpenAIProvider:
     """Calls OpenAI Chat Completions API. Satisfies the LLMProvider Protocol."""
 
-    def __init__(self, api_key: str, model: str, base_url: str = "") -> None:
+    def __init__(
+        self, api_key: str, model: str, base_url: str = "", max_tokens: int = 4096
+    ) -> None:
         kwargs: dict = {"api_key": api_key, "default_headers": _OPENROUTER_HEADERS}
         if base_url.strip():
             kwargs["base_url"] = base_url.strip()
         self._client = openai.OpenAI(**kwargs)
         self._model = model
+        self._max_tokens = max_tokens
 
     def complete(self, system: str, user: str) -> str:
         logger.debug("OpenAIProvider.complete model=%s", self._model)
@@ -34,7 +37,7 @@ class OpenAIProvider:
                 {"role": "system", "content": system},
                 {"role": "user", "content": user},
             ],
-            max_tokens=4096,
+            max_tokens=self._max_tokens,
         )
         text = response.choices[0].message.content
         if not text:

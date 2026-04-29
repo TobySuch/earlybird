@@ -33,6 +33,19 @@ def test_complete_passes_model_and_messages():
     assert {"role": "user", "content": "user text"} in call_kwargs["messages"]
 
 
+def test_complete_passes_max_tokens():
+    mock_response = MagicMock()
+    mock_response.choices[0].message.content = "result"
+
+    with patch("app.llm.openai_provider.openai.OpenAI") as mock_cls:
+        mock_create = mock_cls.return_value.chat.completions.create
+        mock_create.return_value = mock_response
+        provider = OpenAIProvider(api_key="test-key", model="my-model", max_tokens=512)
+        provider.complete(system="sys", user="user")
+
+    assert mock_create.call_args.kwargs["max_tokens"] == 512
+
+
 def test_complete_raises_on_empty_content():
     mock_response = MagicMock()
     mock_response.choices[0].message.content = ""
