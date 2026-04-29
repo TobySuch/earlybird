@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.12.0](https://github.com/TobySuch/earlybird/compare/v0.11.0...v0.12.0) (2026-04-29)
+
+
+### Features
+
+* **llm:** make max_tokens configurable via LLM_MAX_TOKENS env var ([#64](https://github.com/TobySuch/earlybird/issues/64)) ([48c678a](https://github.com/TobySuch/earlybird/commit/48c678a0313d546039ee302523ddfbf1dbbff931))
+
 ## [0.11.0](https://github.com/TobySuch/earlybird/compare/v0.10.2...v0.11.0) (2026-04-29)
 
 
