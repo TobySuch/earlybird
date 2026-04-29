@@ -17,3 +17,9 @@ def mock_init_db():
     """
     with patch("app.main.init_db"), patch("app.main.SessionLocal"):
         yield
+    # Reset tracing global so a test that triggered setup_tracing (via the
+    # TestClient lifespan when MLFLOW_TRACKING_URI is set in .env) doesn't
+    # leave _tracing_enabled=True for subsequent tests.
+    import app.tracing as _tracing
+
+    _tracing._tracing_enabled = False

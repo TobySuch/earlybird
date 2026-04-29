@@ -1,6 +1,17 @@
 from contextlib import nullcontext
 from unittest.mock import MagicMock, patch
 
+import pytest
+
+
+@pytest.fixture(autouse=True)
+def _reset_tracing_enabled():
+    """Ensure _tracing_enabled is always False after each test in this module."""
+    yield
+    import app.tracing as tracing_module
+
+    tracing_module._tracing_enabled = False
+
 
 @patch("mlflow.openai.autolog")
 @patch("mlflow.anthropic.autolog")
@@ -76,8 +87,6 @@ def test_span_calls_mlflow_start_span_when_tracing_enabled(mock_start_span):
     mock_start_span.assert_called_once_with("test_span", attributes={"key": "value"})
     mock_live_span.set_inputs.assert_not_called()
 
-    tracing_module._tracing_enabled = False  # restore
-
 
 @patch("mlflow.start_span")
 def test_span_passes_inputs_via_set_inputs(mock_start_span):
@@ -93,5 +102,3 @@ def test_span_passes_inputs_via_set_inputs(mock_start_span):
 
     mock_start_span.assert_called_once_with("test_span", attributes=None)
     mock_live_span.set_inputs.assert_called_once_with({"key": "value"})
-
-    tracing_module._tracing_enabled = False  # restore
