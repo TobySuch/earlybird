@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.10.2](https://github.com/TobySuch/earlybird/compare/v0.10.1...v0.10.2) (2026-04-29)
+
+
+### Bug Fixes
+
+* **ci:** use releases_created output from release-please-action v5 ([#60](https://github.com/TobySuch/earlybird/issues/60)) ([9b87ae7](https://github.com/TobySuch/earlybird/commit/9b87ae7e1b6cd93d2727a048f4ceccc5fde6b578))
+
 ## [0.10.1](https://github.com/TobySuch/earlybird/compare/v0.10.0...v0.10.1) (2026-04-27)
 
 
