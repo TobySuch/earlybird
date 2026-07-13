@@ -143,7 +143,6 @@ def test_settings_page_shows_work_mode_options(client):
     assert 'name="llm_work_mode"' in response.text
     assert "Agent mode (reporters + editor)" in response.text
     assert 'name="llm_reporter_model"' in response.text
-    assert 'name="llm_editor_model"' in response.text
 
 
 def test_settings_post_persists_agent_config(client, db_session):
@@ -153,7 +152,6 @@ def test_settings_post_persists_agent_config(client, db_session):
         "llm_reporter_provider": "openai",
         "llm_reporter_model": "gpt-4o-mini",
         "llm_reporter_base_url": "http://localhost:11434/v1",
-        "llm_editor_model": "claude-sonnet-5",
         "llm_agent_max_parallel": "8",
     }
     with patch("app.routers.ui._reschedule"):
@@ -164,8 +162,6 @@ def test_settings_post_persists_agent_config(client, db_session):
     assert get_db_config(db_session, "llm.reporter.provider") == "openai"
     assert get_db_config(db_session, "llm.reporter.model") == "gpt-4o-mini"
     assert get_db_config(db_session, "llm.reporter.openai_base_url") == "http://localhost:11434/v1"
-    assert get_db_config(db_session, "llm.editor.provider") == ""
-    assert get_db_config(db_session, "llm.editor.model") == "claude-sonnet-5"
     assert get_db_config(db_session, "llm.agent.max_parallel_reporters") == "8"
 
 

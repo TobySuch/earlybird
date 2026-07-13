@@ -63,15 +63,15 @@ def test_role_base_url_overrides_global(db):
 def test_role_base_url_inherits_global_when_empty(db):
     set_db_config(db, "llm.provider", "openai")
     set_db_config(db, "llm.openai_base_url", "https://global.example")
-    provider = get_llm_provider(db, role="editor")
+    provider = get_llm_provider(db, role="reporter")
     assert str(provider._client.base_url).rstrip("/") == "https://global.example"
 
 
-def test_roles_resolve_independently(db):
+def test_role_override_does_not_affect_global(db):
+    set_db_config(db, "llm.model", "smart-model")
     set_db_config(db, "llm.reporter.model", "cheap-model")
-    set_db_config(db, "llm.editor.model", "smart-model")
     assert get_llm_provider(db, role="reporter")._model == "cheap-model"
-    assert get_llm_provider(db, role="editor")._model == "smart-model"
+    assert get_llm_provider(db)._model == "smart-model"
 
 
 def test_unknown_provider_raises(db):

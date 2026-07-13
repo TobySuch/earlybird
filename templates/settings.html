@@ -64,7 +64,7 @@
 
   {# ── Digest ───────────────────────────────────────────────────────────── #}
   <section class="bg-white border border-gray-200 rounded-lg overflow-hidden"
-    x-data="{ provider: '{{ llm_provider }}', workMode: '{{ llm_work_mode }}', reporterProvider: '{{ llm_reporter_provider }}', editorProvider: '{{ llm_editor_provider }}' }">
+    x-data="{ provider: '{{ llm_provider }}', workMode: '{{ llm_work_mode }}', reporterProvider: '{{ llm_reporter_provider }}' }">
     <div class="px-6 py-4 border-b border-gray-100">
       <h2 class="text-sm font-semibold text-gray-900">Digest</h2>
       <p class="text-xs text-gray-400 mt-0.5">Customise how newsletters are summarised.</p>
@@ -78,7 +78,7 @@
           <option value="digest" {% if llm_work_mode == "digest" %}selected{% endif %}>Single digest call</option>
           <option value="agent" {% if llm_work_mode == "agent" %}selected{% endif %}>Agent mode (reporters + editor)</option>
         </select>
-        <p class="text-xs text-gray-400 mt-1">Agent mode summarises each newsletter with its own reporter agent, then an editor agent picks and assembles the episode — useful when a single call would overflow the model's context.</p>
+        <p class="text-xs text-gray-400 mt-1">Agent mode summarises each newsletter with its own reporter agent, then an editor agent picks and assembles the episode — useful when a single call would overflow the model's context. The editor runs on the provider and model below.</p>
       </div>
 
       <div class="grid grid-cols-2 gap-4">
@@ -113,7 +113,7 @@
             <label class="block text-xs font-medium text-gray-600 mb-1.5" for="llm_reporter_provider">Reporter provider</label>
             <select id="llm_reporter_provider" name="llm_reporter_provider" x-model="reporterProvider"
               class="w-full text-sm border border-gray-300 rounded px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer">
-              <option value="" {% if not llm_reporter_provider %}selected{% endif %}>Same as main provider</option>
+              <option value="" {% if not llm_reporter_provider %}selected{% endif %}>Same as editor</option>
               <option value="anthropic" {% if llm_reporter_provider == "anthropic" %}selected{% endif %}>Anthropic</option>
               <option value="openai" {% if llm_reporter_provider == "openai" %}selected{% endif %}>OpenAI / compatible</option>
             </select>
@@ -122,41 +122,14 @@
             <label class="block text-xs font-medium text-gray-600 mb-1.5" for="llm_reporter_model">Reporter model</label>
             <input id="llm_reporter_model" name="llm_reporter_model" type="text" value="{{ llm_reporter_model }}"
               class="w-full text-sm border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Leave blank to use the main model">
-            <p class="text-xs text-gray-400 mt-1">A cheap, fast model works well here.</p>
+              placeholder="Leave blank to use the editor model">
+            <p class="text-xs text-gray-400 mt-1">Reporters make one small call per newsletter, so a cheap, fast model works well here.</p>
           </div>
         </div>
 
         <div x-show="reporterProvider === 'openai'" x-cloak>
           <label class="block text-xs font-medium text-gray-600 mb-1.5" for="llm_reporter_base_url">Reporter base URL <span class="font-normal text-gray-400">(optional)</span></label>
           <input id="llm_reporter_base_url" name="llm_reporter_base_url" type="text" value="{{ llm_reporter_base_url }}"
-            class="w-full text-sm border border-gray-300 rounded px-3 py-2 font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="http://localhost:11434/v1">
-          <p class="text-xs text-gray-400 mt-1">Leave blank to inherit the main base URL.</p>
-        </div>
-
-        <div class="grid grid-cols-2 gap-4">
-          <div>
-            <label class="block text-xs font-medium text-gray-600 mb-1.5" for="llm_editor_provider">Editor provider</label>
-            <select id="llm_editor_provider" name="llm_editor_provider" x-model="editorProvider"
-              class="w-full text-sm border border-gray-300 rounded px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer">
-              <option value="" {% if not llm_editor_provider %}selected{% endif %}>Same as main provider</option>
-              <option value="anthropic" {% if llm_editor_provider == "anthropic" %}selected{% endif %}>Anthropic</option>
-              <option value="openai" {% if llm_editor_provider == "openai" %}selected{% endif %}>OpenAI / compatible</option>
-            </select>
-          </div>
-          <div>
-            <label class="block text-xs font-medium text-gray-600 mb-1.5" for="llm_editor_model">Editor model</label>
-            <input id="llm_editor_model" name="llm_editor_model" type="text" value="{{ llm_editor_model }}"
-              class="w-full text-sm border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Leave blank to use the main model">
-            <p class="text-xs text-gray-400 mt-1">A smarter model pays off for selection and writing.</p>
-          </div>
-        </div>
-
-        <div x-show="editorProvider === 'openai'" x-cloak>
-          <label class="block text-xs font-medium text-gray-600 mb-1.5" for="llm_editor_base_url">Editor base URL <span class="font-normal text-gray-400">(optional)</span></label>
-          <input id="llm_editor_base_url" name="llm_editor_base_url" type="text" value="{{ llm_editor_base_url }}"
             class="w-full text-sm border border-gray-300 rounded px-3 py-2 font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"
             placeholder="http://localhost:11434/v1">
           <p class="text-xs text-gray-400 mt-1">Leave blank to inherit the main base URL.</p>

@@ -19,8 +19,8 @@ def _role_config(db: Session, role: str | None, key: str) -> str:
 def get_llm_provider(db: Session, role: str | None = None):
     """Read DB config, instantiate, and return the appropriate LLMProvider.
 
-    With a role (e.g. "reporter" or "editor"), llm.{role}.* config keys take
-    precedence; empty role keys inherit the global llm.* values.
+    With a role (e.g. "reporter"), llm.{role}.* config keys take precedence;
+    empty role keys inherit the global llm.* values.
     """
     provider = _role_config(db, role, "provider")
     model = _role_config(db, role, "model")

@@ -60,7 +60,7 @@ def run(db: Session, current_run: Run) -> None:
     ]
 
     reporter_provider = get_llm_provider(db, role="reporter")
-    editor_provider = get_llm_provider(db, role="editor")
+    editor_provider = get_llm_provider(db)  # the editor runs on the main LLM config
     user_prompt = get_llm_user_prompt(db)
     current_date = format_date(datetime.datetime.now())
 

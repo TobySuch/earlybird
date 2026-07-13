@@ -114,7 +114,8 @@ class StubEditorProvider:
 
 def _patch_providers(reporter, editor):
     def fake_get_llm_provider(db, role=None):
-        return {"reporter": reporter, "editor": editor}[role]
+        # The reporter role is explicit; the editor uses the main config (no role).
+        return {"reporter": reporter, None: editor}[role]
 
     return patch("app.pipeline.agents.pipeline.get_llm_provider", side_effect=fake_get_llm_provider)
 

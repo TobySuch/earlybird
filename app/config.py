@@ -51,13 +51,11 @@ CONFIG_DEFAULTS: dict[str, str] = {
     "llm.prompt": "",
     "llm.openai_base_url": "",
     "llm.work_mode": "digest",  # digest = single LLM call | agent = reporters + editor
-    # Per-role overrides for agent mode; empty string inherits the llm.* value above
+    # Agent mode: the editor uses the main llm.* config; reporters can override it.
+    # Empty string inherits the llm.* value above.
     "llm.reporter.provider": "",
     "llm.reporter.model": "",
     "llm.reporter.openai_base_url": "",
-    "llm.editor.provider": "",
-    "llm.editor.model": "",
-    "llm.editor.openai_base_url": "",
     "llm.agent.max_parallel_reporters": "4",
     "retention.enabled": "false",
     "retention.max_days": "30",
