@@ -175,20 +175,6 @@ def test_run_system_prompt_contains_formatted_date(db, current_run):
     assert "Disregard any dates" in stub.calls[0]["system"]
 
 
-def test_run_podcast_script_is_none(db, current_run):
-    _make_source(db, current_run.id)
-    stub = StubLLMProvider()
-
-    with (
-        patch("app.pipeline.process.get_llm_provider", return_value=stub),
-        patch("app.pipeline.process.get_llm_user_prompt", return_value=""),
-    ):
-        process.run(db, current_run)
-
-    episode = db.query(Episode).filter(Episode.run_id == current_run.id).first()
-    assert episode.podcast_script is None
-
-
 def test_run_makes_two_llm_calls(db, current_run):
     _make_source(db, current_run.id)
     stub = StubLLMProvider(["digest text", "• Headline one\n• Headline two"])

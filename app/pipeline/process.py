@@ -117,7 +117,6 @@ def run(db: Session, current_run: Run) -> None:
     episode = Episode(
         run_id=current_run.id,
         newsletter_text=newsletter_text,
-        podcast_script=None,  # TODO: populate in publish.py
         episode_headlines=episode_headlines,
     )
     db.add(episode)
