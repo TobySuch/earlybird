@@ -10,6 +10,7 @@ import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
+from app.config import set_db_config
 from app.database import Base
 from app.models import Episode, NewsSource, Run
 from app.pipeline import process
@@ -215,6 +216,36 @@ def test_run_headlines_call_uses_newsletter_text_as_input(db, current_run):
     # Second call's user message should be the newsletter_text from the first call
     assert stub.calls[1]["user"] == "My digest."
     assert process.HEADLINES_SYSTEM_PROMPT in stub.calls[1]["system"]
+
+
+def test_run_agent_work_mode_delegates_to_agent_pipeline(db, current_run):
+    set_db_config(db, "llm.work_mode", "agent")
+    _make_source(db, current_run.id)
+    stub = StubLLMProvider()
+
+    with (
+        patch("app.pipeline.agents.pipeline.run") as agent_run,
+        patch("app.pipeline.process.get_llm_provider", return_value=stub),
+    ):
+        process.run(db, current_run)
+
+    agent_run.assert_called_once_with(db, current_run)
+    assert stub.calls == []  # digest path not executed
+
+
+def test_run_default_work_mode_uses_digest_path(db, current_run):
+    _make_source(db, current_run.id)
+    stub = StubLLMProvider()
+
+    with (
+        patch("app.pipeline.agents.pipeline.run") as agent_run,
+        patch("app.pipeline.process.get_llm_provider", return_value=stub),
+        patch("app.pipeline.process.get_llm_user_prompt", return_value=""),
+    ):
+        process.run(db, current_run)
+
+    agent_run.assert_not_called()
+    assert len(stub.calls) == 2
 
 
 def test_run_no_sources_skips_headlines_call(db, current_run):

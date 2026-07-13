@@ -8,6 +8,7 @@ import logging
 from sqlalchemy.orm import Session
 
 from app import tracing as app_tracing
+from app.config import get_db_config
 from app.llm.factory import get_llm_provider, get_llm_user_prompt
 from app.models import Episode, NewsSource, Run
 
@@ -44,8 +45,11 @@ def _ordinal(n: int) -> str:
     return f"{n}{suffix}"
 
 
-def _format_date(dt: datetime.datetime) -> str:
+def format_date(dt: datetime.datetime) -> str:
     return f"{dt.strftime('%A')}, the {_ordinal(dt.day)} of {dt.strftime('%B %Y')}"
+
+
+_format_date = format_date
 
 
 def _build_user_message(sources: list[NewsSource], user_prompt: str) -> str:
@@ -68,6 +72,16 @@ def _build_user_message(sources: list[NewsSource], user_prompt: str) -> str:
 
 
 def run(db: Session, current_run: Run) -> None:
+    """Produce this run's Episode using the configured work mode."""
+    if get_db_config(db, "llm.work_mode") == "agent":
+        from app.pipeline.agents import pipeline as agent_pipeline
+
+        agent_pipeline.run(db, current_run)
+        return
+    _run_digest(db, current_run)
+
+
+def _run_digest(db: Session, current_run: Run) -> None:
     """Call the configured LLM to summarise newsletters for this run.
 
     Steps:
@@ -91,9 +105,7 @@ def run(db: Session, current_run: Run) -> None:
     provider = get_llm_provider(db)
     user_prompt = get_llm_user_prompt(db)
 
-    system_prompt = SYSTEM_PROMPT_TEMPLATE.format(
-        current_date=_format_date(datetime.datetime.now())
-    )
+    system_prompt = SYSTEM_PROMPT_TEMPLATE.format(current_date=format_date(datetime.datetime.now()))
     user_message = _build_user_message(sources, user_prompt)
     logger.debug("User message length: %d chars", len(user_message))
 
