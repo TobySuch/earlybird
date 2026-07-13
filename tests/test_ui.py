@@ -10,6 +10,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from app.auth import require_user
+from app.config import get_db_config
 from app.database import Base, get_db
 from app.main import app
 from app.models import Episode, Run
@@ -123,3 +124,51 @@ def test_delete_episode_missing_audio_file(client, db_session, episode):
 def test_delete_episode_404(client):
     response = client.delete("/episodes/9999")
     assert response.status_code == 404
+
+
+# ── /settings (agent mode) ────────────────────────────────────────────────────
+
+
+_SETTINGS_FORM_BASE = {
+    "llm_provider": "anthropic",
+    "llm_model": "claude-haiku-4-5-20251001",
+    "schedule_cron": "0 7 * * 1-5",
+}
+
+
+def test_settings_page_shows_work_mode_options(client):
+    with patch("app.gmail_auth.get_credentials", return_value=None):
+        response = client.get("/settings")
+    assert response.status_code == 200
+    assert 'name="llm_work_mode"' in response.text
+    assert "Agent mode (reporters + editor)" in response.text
+    assert 'name="llm_reporter_model"' in response.text
+
+
+def test_settings_post_persists_agent_config(client, db_session):
+    form = {
+        **_SETTINGS_FORM_BASE,
+        "llm_work_mode": "agent",
+        "llm_reporter_provider": "openai",
+        "llm_reporter_model": "gpt-4o-mini",
+        "llm_reporter_base_url": "http://localhost:11434/v1",
+        "llm_agent_max_parallel": "8",
+    }
+    with patch("app.routers.ui._reschedule"):
+        response = client.post("/settings", data=form, follow_redirects=False)
+
+    assert response.status_code == 303
+    assert get_db_config(db_session, "llm.work_mode") == "agent"
+    assert get_db_config(db_session, "llm.reporter.provider") == "openai"
+    assert get_db_config(db_session, "llm.reporter.model") == "gpt-4o-mini"
+    assert get_db_config(db_session, "llm.reporter.openai_base_url") == "http://localhost:11434/v1"
+    assert get_db_config(db_session, "llm.agent.max_parallel_reporters") == "8"
+
+
+def test_settings_post_invalid_work_mode_falls_back_to_digest(client, db_session):
+    form = {**_SETTINGS_FORM_BASE, "llm_work_mode": "bogus"}
+    with patch("app.routers.ui._reschedule"):
+        response = client.post("/settings", data=form, follow_redirects=False)
+
+    assert response.status_code == 303
+    assert get_db_config(db_session, "llm.work_mode") == "digest"

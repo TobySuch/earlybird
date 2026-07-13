@@ -135,6 +135,11 @@ async def settings(request: Request, db: Session = Depends(get_db), saved: bool 
             "llm_model": get_db_config(db, "llm.model"),
             "llm_prompt": get_db_config(db, "llm.prompt"),
             "llm_base_url": get_db_config(db, "llm.openai_base_url"),
+            "llm_work_mode": get_db_config(db, "llm.work_mode"),
+            "llm_reporter_provider": get_db_config(db, "llm.reporter.provider"),
+            "llm_reporter_model": get_db_config(db, "llm.reporter.model"),
+            "llm_reporter_base_url": get_db_config(db, "llm.reporter.openai_base_url"),
+            "llm_agent_max_parallel": get_db_config(db, "llm.agent.max_parallel_reporters"),
             "schedule_cron": get_db_config(db, "schedule.cron"),
             "schedule_enabled": get_db_config(db, "schedule.enabled") == "true",
             "tts_enabled": get_db_config(db, "tts.enabled") == "true",
@@ -164,6 +169,11 @@ async def settings_post(
     llm_model: str = Form(CONFIG_DEFAULTS["llm.model"]),
     llm_prompt: str = Form(""),
     llm_base_url: str = Form(""),
+    llm_work_mode: str = Form(CONFIG_DEFAULTS["llm.work_mode"]),
+    llm_reporter_provider: str = Form(""),
+    llm_reporter_model: str = Form(""),
+    llm_reporter_base_url: str = Form(""),
+    llm_agent_max_parallel: str = Form(CONFIG_DEFAULTS["llm.agent.max_parallel_reporters"]),
     schedule_cron: str = Form(CONFIG_DEFAULTS["schedule.cron"]),
     schedule_enabled: str | None = Form(None),
     tts_enabled: str | None = Form(None),
@@ -185,6 +195,15 @@ async def settings_post(
     set_db_config(db, "llm.model", llm_model.strip())
     set_db_config(db, "llm.prompt", llm_prompt.strip())
     set_db_config(db, "llm.openai_base_url", llm_base_url.strip())
+
+    work_mode = llm_work_mode.strip()
+    if work_mode not in ("digest", "agent"):
+        work_mode = "digest"
+    set_db_config(db, "llm.work_mode", work_mode)
+    set_db_config(db, "llm.reporter.provider", llm_reporter_provider.strip())
+    set_db_config(db, "llm.reporter.model", llm_reporter_model.strip())
+    set_db_config(db, "llm.reporter.openai_base_url", llm_reporter_base_url.strip())
+    set_db_config(db, "llm.agent.max_parallel_reporters", llm_agent_max_parallel.strip())
 
     enabled = schedule_enabled is not None
     set_db_config(db, "schedule.cron", schedule_cron.strip())

@@ -50,6 +50,13 @@ CONFIG_DEFAULTS: dict[str, str] = {
     "llm.model": "claude-haiku-4-5-20251001",
     "llm.prompt": "",
     "llm.openai_base_url": "",
+    "llm.work_mode": "digest",  # digest = single LLM call | agent = reporters + editor
+    # Agent mode: the editor uses the main llm.* config; reporters can override it.
+    # Empty string inherits the llm.* value above.
+    "llm.reporter.provider": "",
+    "llm.reporter.model": "",
+    "llm.reporter.openai_base_url": "",
+    "llm.agent.max_parallel_reporters": "4",
     "retention.enabled": "false",
     "retention.max_days": "30",
 }

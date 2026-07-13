@@ -7,10 +7,23 @@ from sqlalchemy.orm import Session
 from app.config import get_db_config, get_settings
 
 
-def get_llm_provider(db: Session):
-    """Read DB config, instantiate, and return the appropriate LLMProvider."""
-    provider = get_db_config(db, "llm.provider")
-    model = get_db_config(db, "llm.model")
+def _role_config(db: Session, role: str | None, key: str) -> str:
+    """Read llm.{role}.{key}, falling back to the global llm.{key} when empty."""
+    if role:
+        value = get_db_config(db, f"llm.{role}.{key}")
+        if value:
+            return value
+    return get_db_config(db, f"llm.{key}")
+
+
+def get_llm_provider(db: Session, role: str | None = None):
+    """Read DB config, instantiate, and return the appropriate LLMProvider.
+
+    With a role (e.g. "reporter"), llm.{role}.* config keys take precedence;
+    empty role keys inherit the global llm.* values.
+    """
+    provider = _role_config(db, role, "provider")
+    model = _role_config(db, role, "model")
 
     max_tokens = get_settings().llm_max_tokens
 
@@ -24,7 +37,7 @@ def get_llm_provider(db: Session):
         from app.llm.openai_provider import OpenAIProvider
 
         api_key = get_settings().openai_api_key
-        base_url = get_db_config(db, "llm.openai_base_url")
+        base_url = _role_config(db, role, "openai_base_url")
         return OpenAIProvider(
             api_key=api_key, model=model, base_url=base_url, max_tokens=max_tokens
         )
