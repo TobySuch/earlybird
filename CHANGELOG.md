@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.13.0](https://github.com/TobySuch/earlybird/compare/v0.12.0...v0.13.0) (2026-07-13)
+
+
+### Features
+
+* agent work mode (reporters + editor) ([#68](https://github.com/TobySuch/earlybird/issues/68)) ([9592b59](https://github.com/TobySuch/earlybird/commit/9592b59051767d1fb3d8441b1d175bfa273da5ec))
+
+
+### Documentation
+
+* add CONTRIBUTING.md and open-source metadata to pyproject.toml ([c5bd194](https://github.com/TobySuch/earlybird/commit/c5bd194904cae40cc91019ba14d682d76570e786))
+
 ## [0.12.0](https://github.com/TobySuch/earlybird/compare/v0.11.0...v0.12.0) (2026-04-29)
 
 
