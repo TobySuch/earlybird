@@ -102,3 +102,34 @@ def test_span_passes_inputs_via_set_inputs(mock_start_span):
 
     mock_start_span.assert_called_once_with("test_span", attributes=None)
     mock_live_span.set_inputs.assert_called_once_with({"key": "value"})
+
+
+def test_setup_tracing_disabled_when_mlflow_missing(monkeypatch, caplog):
+    """A missing mlflow install must not crash startup; tracing stays off."""
+    import app.tracing as tracing_module
+
+    monkeypatch.setattr(tracing_module, "mlflow", None)
+
+    tracing_module.setup_tracing("http://localhost:5000", "exp")
+
+    assert tracing_module._tracing_enabled is False
+    assert "mlflow is not installed" in caplog.text
+    with tracing_module.span("x"):
+        pass
+
+
+@patch("mlflow.openai.autolog")
+@patch("mlflow.anthropic.autolog")
+@patch("mlflow.set_experiment", side_effect=Exception("connection refused"))
+@patch("mlflow.set_tracking_uri")
+def test_setup_tracing_disabled_when_server_unreachable(
+    mock_uri, mock_experiment, mock_anthropic, mock_openai, caplog
+):
+    """An unreachable tracking server must not crash startup; tracing stays off."""
+    import app.tracing as tracing_module
+
+    tracing_module.setup_tracing("http://unreachable:5000", "exp")
+
+    assert tracing_module._tracing_enabled is False
+    assert "tracing disabled" in caplog.text
+    mock_anthropic.assert_not_called()
