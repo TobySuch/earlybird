@@ -18,11 +18,20 @@ def setup_tracing(tracking_uri: str, experiment_name: str) -> None:
     if mlflow is None:
         logger.warning("MLFLOW_TRACKING_URI is set but mlflow is not installed; tracing disabled")
         return
-    mlflow.set_tracking_uri(tracking_uri)
-    if experiment_name:
-        mlflow.set_experiment(experiment_name)
-    mlflow.anthropic.autolog()
-    mlflow.openai.autolog()
+    try:
+        mlflow.set_tracking_uri(tracking_uri)
+        if experiment_name:
+            # Contacts the tracking server, so this fails if it is unreachable.
+            mlflow.set_experiment(experiment_name)
+        mlflow.anthropic.autolog()
+        mlflow.openai.autolog()
+    except Exception:
+        logger.warning(
+            "MLflow tracing setup failed (tracking URI: %s); tracing disabled",
+            tracking_uri,
+            exc_info=True,
+        )
+        return
     _tracing_enabled = True
     logger.info("MLflow tracing enabled (tracking URI: %s)", tracking_uri)
 
