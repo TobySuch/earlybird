@@ -2,7 +2,10 @@ import logging
 from contextlib import contextmanager, nullcontext
 from typing import Any
 
-import mlflow
+try:
+    import mlflow
+except ImportError:  # tracing is optional; never crash the app over it
+    mlflow = None
 
 logger = logging.getLogger(__name__)
 
@@ -12,6 +15,9 @@ _tracing_enabled = False
 def setup_tracing(tracking_uri: str, experiment_name: str) -> None:
     """Configure MLflow and enable autologging for all LLM providers."""
     global _tracing_enabled
+    if mlflow is None:
+        logger.warning("MLFLOW_TRACKING_URI is set but mlflow is not installed; tracing disabled")
+        return
     mlflow.set_tracking_uri(tracking_uri)
     if experiment_name:
         mlflow.set_experiment(experiment_name)
