@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.13.1](https://github.com/TobySuch/earlybird/compare/v0.13.0...v0.13.1) (2026-10-18)
+
+
+### Bug Fixes
+
+* **tracing:** don't crash on startup when mlflow is missing or unreachable ([#72](https://github.com/TobySuch/earlybird/issues/72)) ([8c99076](https://github.com/TobySuch/earlybird/commit/8c99076a00d3b65f63f71f2d147fb9d06e57e92d))
+
 ## [0.13.0](https://github.com/TobySuch/earlybird/compare/v0.12.0...v0.13.0) (2026-07-13)
 
 
